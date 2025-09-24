@@ -1,0 +1,27 @@
+services:
+  _defaults:
+    public: true
+    autowire: true
+    autoconfigure: true
+
+  # Adapter for FacetedSearch integration
+  mpsoft.mpgridproducts.adapter.faceted_search:
+    class: MpSoft\MpGridProducts\Adapter\FacetedSearchAdapter
+    public: true
+
+  # Adapter for PriceList integration
+  mpsoft.mpgridproducts.adapter.price_list:
+    class: MpSoft\MpGridProducts\Adapter\PriceListAdapter
+    arguments:
+      - "@service_container"
+    public: true
+
+  # Service for Product Listing
+  mpsoft.mpgridproducts.service.product_listing:
+    class: MpSoft\MpGridProducts\Services\ProductListingService
+    arguments:
+      - "@request_stack"
+      - "@mpsoft.mpgridproducts.adapter.price_list"
+      - "@twig"
+      - "@doctrine.dbal.default_connection"
+    public: true

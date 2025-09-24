@@ -1,0 +1,255 @@
+/**
+ * 2025 MP Soft
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ *
+ * @author    MP Soft
+ * @copyright 2025 MP Soft
+ * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
+
+.mp-grid-products {
+    margin-bottom: 2rem;
+}
+
+.mp-grid-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.mp-grid-controls {
+    display: flex;
+    align-items: center;
+}
+
+.mp-grid-pagination-info {
+    margin-right: 1rem;
+}
+
+.mp-grid-per-page {
+    display: flex;
+    align-items: center;
+}
+
+.mp-grid-per-page label {
+    margin-right: 0.5rem;
+    margin-bottom: 0;
+}
+
+.mp-grid-per-page select {
+    width: auto;
+    display: inline-block;
+}
+
+.mp-grid-table-container {
+    overflow-x: auto;
+    margin-bottom: 1rem;
+}
+
+.mp-grid-table {
+    width: 100%;
+}
+
+.mp-grid-col-image {
+    width: 80px;
+}
+
+.mp-grid-col-image img {
+    max-width: 70px;
+    height: auto;
+}
+
+.mp-grid-col-name {
+    min-width: 200px;
+}
+
+.mp-grid-product-name {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.mp-grid-product-desc {
+    font-size: 0.875rem;
+    color: #6c757d;
+    max-height: 3.5rem;
+    overflow: hidden;
+}
+
+.mp-grid-col-reference,
+.mp-grid-col-manufacturer {
+    width: 120px;
+}
+
+.mp-grid-col-price {
+    width: 100px;
+    font-weight: bold;
+}
+
+.mp-grid-col-actions {
+    width: 150px;
+    text-align: right;
+}
+
+.mp-grid-col-actions .btn {
+    margin: 0.25rem;
+}
+
+.mp-grid-loader {
+    padding: 2rem;
+    text-align: center;
+    color: #6c757d;
+}
+
+.mp-grid-loader i {
+    animation: spin 2s linear infinite;
+    display: inline-block;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.mp-grid-footer {
+    display: flex;
+    justify-content: center;
+}
+
+/* Stili migliorati per la paginazione */
+.mp-grid-pagination {
+    margin: 1.5rem 0;
+}
+
+.mp-grid-pagination .pagination {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0;
+}
+
+.mp-grid-pagination .page-item {
+    margin: 0 2px;
+    display: flex;
+}
+
+.mp-grid-pagination .page-link {
+    border-radius: 4px;
+    padding: 0;
+    height: 36px;
+    width: 36px;
+    min-width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: all 0.2s ease;
+    border: 1px solid #dee2e6;
+    color: #2fb5d2;
+    background-color: #fff;
+    line-height: 1;
+}
+
+.mp-grid-pagination .page-item.active .page-link {
+    background-color: #2fb5d2;
+    border-color: #2fb5d2;
+    color: #fff;
+    font-weight: bold;
+}
+
+.mp-grid-pagination .page-item.disabled .page-link {
+    color: #6c757d;
+    pointer-events: none;
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+.mp-grid-pagination .page-link:hover {
+    background-color: #f8f9fa;
+    border-color: #2fb5d2;
+    color: #2fb5d2;
+    z-index: 2;
+}
+
+.mp-grid-pagination .page-item.active .page-link:hover {
+    background-color: #2fb5d2;
+    color: #fff;
+}
+
+/* Stili per i pulsanti First/Last e prev/next */
+.mp-grid-pagination .mp-grid-page-first .page-link,
+.mp-grid-pagination .mp-grid-page-last .page-link,
+.mp-grid-pagination .mp-grid-prev .page-link,
+.mp-grid-pagination .mp-grid-next .page-link {
+    font-size: 0.85rem;
+    width: 40px;
+}
+
+/* Stili per l'ellipsis */
+.mp-grid-pagination .page-item.disabled .page-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Stili per i pulsanti di navigazione su mobile */
+@media (max-width: 576px) {
+    .mp-grid-pagination .pagination {
+        gap: 0.1rem;
+    }
+    
+    .mp-grid-pagination .page-link {
+        height: 32px;
+        width: 32px;
+        min-width: 32px;
+        font-size: 0.9rem;
+    }
+    
+    .mp-grid-pagination .mp-grid-page-first .page-link,
+    .mp-grid-pagination .mp-grid-page-last .page-link,
+    .mp-grid-pagination .mp-grid-prev .page-link,
+    .mp-grid-pagination .mp-grid-next .page-link {
+        width: 36px;
+    }
+    
+    /* Nascondi alcuni numeri di pagina su schermi molto piccoli */
+    .mp-grid-pagination .page-item:not(.active):not(.mp-grid-prev):not(.mp-grid-next):not(.mp-grid-page-first):not(.mp-grid-page-last):not(.mp-grid-page-1):not([class*="mp-grid-page-"]:last-of-type) {
+        display: none;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+    .mp-grid-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .mp-grid-controls {
+        margin-top: 1rem;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .mp-grid-pagination-info {
+        margin-bottom: 0.5rem;
+    }
+    
+    .mp-grid-table th:nth-child(3),
+    .mp-grid-table th:nth-child(4),
+    .mp-grid-table td:nth-child(3),
+    .mp-grid-table td:nth-child(4) {
+        display: none;
+    }
+}

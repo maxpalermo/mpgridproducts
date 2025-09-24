@@ -1,0 +1,11 @@
+mpgridproduct_fetch_product_info:
+  path: /mpgridproduct/fetch-product-info
+  methods: [POST]
+  defaults:
+    _controller: MpSoft\MpGridProducts\Controller\Admin\FetchProductInfoController::index
+
+mpgridproduct_product_listing_wrapper:
+  path: /mpgridproduct/product-listing-wrapper
+  methods: [GET]
+  defaults:
+    _controller: MpSoft\MpGridProducts\Controller\Admin\ProductListingWrapperController::index
