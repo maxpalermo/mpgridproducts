@@ -260,6 +260,13 @@ class MpGridProductsCronModuleFrontController extends ModuleFrontController
             // Formatta i prodotti per la risposta
             $formattedProducts = [];
 
+            // Inserisco l'icona del tipo di vettura
+            $vehicles = [
+                "C1" => "directions_car",
+                "C2" => "airport_shuttle",
+                "C3" => "local_shipping"
+            ];
+
             // Utilizza un approccio più semplice per formattare i prodotti
             foreach ($rawProducts as $rawProduct) {
                 // Estrai le informazioni essenziali dal prodotto
@@ -288,8 +295,17 @@ class MpGridProductsCronModuleFrontController extends ModuleFrontController
                         'add' => 1,
                         'id_product' => $rawProduct['id_product'],
                         'token' => Tools::getToken(false)
-                    ])
+                    ]),
+
                 ];
+
+                foreach ($rawProduct['features'] as $feature) {
+                    if ($feature['name'] == 'Classe Veicolo') {
+                        $product['icon_vehicle'] = $vehicles[$feature['value']] ?? "help";
+                        break;
+                    }
+                }
+
 
                 // Aggiungi l'immagine se disponibile
                 if (isset($rawProduct['id_image']) && $rawProduct['id_image']) {

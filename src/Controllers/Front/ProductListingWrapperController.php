@@ -27,12 +27,14 @@ class ProductListingWrapperController
     private $controller;
     private $context;
     private $module;
+    private $id_lang;
 
     public function __construct()
     {
         $this->context = \Context::getContext();
         $this->controller = \Tools::getValue('controller');
         $this->module = \Module::getInstanceByName('mpgridproducts');
+        $this->id_lang = (int) \Context::getContext()->language->id;
     }
 
 
@@ -102,6 +104,24 @@ class ProductListingWrapperController
             $count = count($listing['products']);
             $listing['pagination']['items_shown_to'] = $listing['pagination']['items_shown_from'] + $count - 1;
             $listing['pagination']['total_items'] = max($listing['pagination']['total_items'], $count);
+        }
+
+        // Inserisco l'icona del tipo di vettura
+        $vehicles = [
+            "C1" => "directions_car",
+            "C2" => "airpost_shuttle",
+            "C3" => "local_shipping"
+        ];
+
+        foreach ($listing['products'] as $key => $product) {
+            $features = $product['features'];
+            foreach ($features as $feature) {
+                if ($feature['name'] == 'Classe Veicolo') {
+                    $listing['products'][$key]['icon_vehicle'] = $vehicles[$feature['value']] ?? "quiz";
+                    break;
+                }
+            }
+
         }
 
         // Assign template variables

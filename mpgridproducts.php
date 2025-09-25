@@ -146,6 +146,15 @@ class MpGridProducts extends Module implements WidgetInterface
                 ]
             );
 
+            $this->context->controller->registerStylesheet(
+                'rowproduct-style',
+                'modules/' . $this->name . '/views/css/row-product.css',
+                [
+                    'media' => 'all',
+                    'priority' => 200,
+                ]
+            );
+
             $this->context->controller->registerJavascript(
                 'mpgridproducts-script',
                 'modules/' . $this->name . '/views/js/mpgridproducts.js',

@@ -13,60 +13,6 @@
 * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *}
 
-<style>
-    .d-flex {
-        display: flex;
-    }
-
-    .align-items-center {
-        align-items: center;
-    }
-
-    .justify-content-center {
-        justify-content: center;
-    }
-
-    .justify-content-end {
-        justify-content: end;
-    }
-
-    .btn-sm-circle {
-        width: 32px;
-        height: 32px;
-        max-width: 32px;
-        max-height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .btn-sm-circle:hover {
-        background-color: #0056b3;
-        color: #fff;
-    }
-
-    .btn-sm-circle i {
-        font-size: 0.9rem !important;
-    }
-
-    .badge {
-        border-radius: 5%;
-        padding: 5px;
-        font-size: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid #0056b3;
-        width: auto;
-    }
-
-    .badge-success {
-        color: #fff;
-        background-color: #0056b3;
-    }
-</style>
-
 <div id="mp-grid-products" class="mp-grid-products"
      data-ajax-url="{$ajax_url}"
      data-category-id="{if isset($smarty.get.id_category)}{$smarty.get.id_category|intval}{else}0{/if}"
@@ -159,10 +105,8 @@
     <template id="mp-grid-product-template">
         <tr class="mp-grid-product" data-id-product="{literal}{{id}}{/literal}">
             <td class="mp-grid-col-type">
-                {assign var="types" value=["directions_car", "airpost_shuttle", "local_shipping"]}
-                {assign var="randomIndex" value=rand(0,2)}
                 <span class="material-icons">
-                    {$types[$randomIndex]}
+                    {literal}{{icon_vehicle}}{/literal}
                 </span>
             </td>
             <td class="mp-grid-col-name">
