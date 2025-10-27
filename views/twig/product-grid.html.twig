@@ -1,0 +1,716 @@
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="{{ moduleViewsUrl }}css/bstable.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-table@1.25.0/dist/bootstrap-table.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+
+
+<div class="container-fluid mt-3">
+    {# Sezione Toolbar di Ricerca #}
+    <div class="card mb-3" id="table-toolbar">
+        <div class="card-body">
+            <div class="title d-flex justify-content-center align-items-cente mt-2">
+                <h5>Ricerca Prodotti</h5>
+            </div>
+            <form id="product-search-form">
+                <div class="d-flex justify-content-center align-items-center gap-2">
+                    <div class="form-group">
+                        <label for="search-product" class="form-label">Marca</label>
+                        <select class="form-control chosen" id="search-brand" placeholder="Marca" />
+                        <option value="">Tutte</option>
+                        {% for brand in brands %}
+                            <option value="{{ brand.id_manufacturer }}">{{ brand.name }}</option>
+                        {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="search-reference" class="form-label">Riferimento</label>
+                        <input type="text" class="form-control" id="search-reference" placeholder="Codice..." />
+                    </div>
+                    <div class="form-group">
+                        <label for="search-reference" class="form-label">Ean13</label>
+                        <input type="text" class="form-control" id="search-ean13" placeholder="Ean13" />
+                    </div>
+                    <div class="form-group fixed-width-sm">
+                        <label for="search-reference" class="form-label">Misura</label>
+                        <input type="text" class="form-control" id="search-measure" placeholder="ES: 2253510" />
+                    </div>
+                    <div class="form-group fixed-width-sm">
+                        <label for="search-price-min" class="form-label">Prezzo Min</label>
+                        <input type="number" class="form-control text-right" id="search-price-min" placeholder="0.00" step="0.01" />
+                    </div>
+                    <div class="form-group fixed-width-sm">
+                        <label for="search-price-max" class="form-label">Prezzo Max</label>
+                        <input type="number" class="form-control text-right" id="search-price-max" placeholder="0.00" step="0.01" />
+                    </div>
+                    <div class="form-group">
+                        <label for="search-delivery" class="form-label">Data Consegna</label>
+                        <input type="date" class="form-control" id="search-delivery" />
+                    </div>
+                </div>
+                <div class="form-group d-flex justify-content-center align-items-center gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="material-icons">search</i>
+                        Cerca
+                    </button>
+                    <button type="reset" class="btn btn-secondary">
+                        <i class="material-icons">refresh</i>
+                        Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# Sezione Tabella Prodotti #}
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <i class="material-icons">inventory_2</i>
+                Elenco Prodotti
+            </div>
+            <div class="total-products">
+                Totale: <span id="total-products">{{ listing.pagination.total_items }}</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="products-table" class="table table-hover table-striped"
+                >
+                    <thead class="table-light">
+                        <tr>
+                            
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    "use strict";
+
+    let $table = null;
+    let $idCategory = null;
+    let $searchFilters = [];
+    const $params = {
+        limit: 50,
+        offset: 0,
+        sort: "id_product",
+        order: "asc",
+        search: "",
+    };
+    const frontControllerUrl = "{{ frontControllerUrl }}";
+
+    // Funzione per caricare script in modo dinamico
+    function loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    // Attendi che il DOM sia pronto e carica gli script
+    document.addEventListener("DOMContentLoaded", async function () {
+        // Verifica che jQuery sia disponibile
+        if (typeof jQuery === "undefined") {
+            console.error("jQuery non è disponibile! PrestaShop dovrebbe caricarlo automaticamente.");
+            return;
+        }
+
+        try {
+            // Carica bootstrap-table
+            await loadScript("https://cdn.jsdelivr.net/npm/bootstrap-table@1.25.0/dist/bootstrap-table.min.js");
+            console.log("Bootstrap-table caricato");
+
+            // Carica la localizzazione italiana
+            await loadScript("https://cdn.jsdelivr.net/npm/bootstrap-table@1.25.0/dist/locale/bootstrap-table-it-IT.min.js");
+            console.log("Bootstrap-table IT locale caricato");
+
+            // Inizializza la tabella
+            initProductsTable();
+        } catch (error) {
+            console.error("Errore nel caricamento degli script:", error);
+        }
+
+        $(".chosen").chosen();
+    });
+
+    function formatDateDelivery(value, row)
+    {
+        return `
+            <span class="calendar">
+                <span class="month-delivery">${row.month_delivery}</span>
+                <span class="day-delivery">${row.day_delivery}</span>
+            </span>
+        `;
+    }
+
+    function formatProduct(value, row) {
+        const barcode = getBarcode(row.id, row.ean13);
+        
+        return `
+            <div>
+                ${row.icon_toolbar}
+                <div style="font-weight: 600;">${row.name}</div>
+                <div><small class="text-muted">Rif: ${row.reference}</small></div>
+                ${barcode}
+            </div>
+        `;
+    }
+
+    function formatPrice(value, row)
+    {
+        const price = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(row.price_tax_exc);
+        return `
+            <span style="font-size: 1.3rem; font-weight: 800;">${price}</span>
+        `;
+    }
+
+    function getBarcode(idProduct, ean13)
+    {
+        const barcodeId = `barcode-${idProduct}`;
+
+        // Genera il barcode dopo il rendering
+        setTimeout(() => {
+            const barcodeElement = document.getElementById(barcodeId);
+            if (barcodeElement && ean13) {
+                try {
+                    JsBarcode(barcodeElement, ean13, {
+                        format: "EAN13",
+                        width: 1,
+                        height: 20,
+                        displayValue: true,
+                        fontSize: 20,
+                        margin: 5
+                    });
+                } catch (e) {
+                    console.error('Errore generazione barcode:', e);
+                    barcodeElement.style.display = 'none';
+                }
+            }
+        }, 100);
+
+        return ean13 ? `<svg id="${barcodeId}"></svg>` : '';
+    }
+
+    function formatImage(value, row)
+    {
+        return `
+            <img class="img-thumbnail" src="${row.image}" alt="${row.name}" />
+        `;
+    }
+
+    function formatBrand(value, row)
+    {
+        return `
+            <div class="d-flex justify-start align-items-center">
+                <img class="img-thumbnail" src="${row.brand_image}" alt="${row.brand}" />
+            </div>
+        `;
+    }
+
+    function formatActions (value, row) {
+        var disabled = row.quantity <= 0 ? "disabled" : "";
+        return (
+            `
+            <div class="cart-quantity">
+                <input type="number" class="form-control cart-quantity-input" value="1" min="1" max="${row.stock}" name="mp-grid-stock-input[]">
+                <button type="button" class="btn btn-no-border btn-add-cart cart-quantity-add" data-product-id="${row.id}" title="Aggiungi al carrello" ${disabled}>
+                    <i class="material-icons">shopping_cart</i>
+                </button>
+            </div>
+            `
+        );
+    };
+
+    function formatQuantity (value, row) {
+        if (row.stock > 0) {
+            return `                
+                <div class="stock">${row.stock}</div>
+            `;
+        }
+        
+        return "--";
+    };
+
+    function formatDetailProduct(index, row) {
+        // Restituisce immediatamente un placeholder con un ID univoco
+        const detailId = 'product-detail-' + row.id;
+        
+        // Avvia il caricamento asincrono
+        setTimeout(() => {
+            const requestParams = {
+                action: "getProductDetails",
+                idProduct: row.id,
+                ajax: 1
+            };
+
+            fetch(frontControllerUrl, {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams(requestParams)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Aggiorna il contenuto del placeholder
+                const detailElement = document.getElementById(detailId);
+                if (detailElement) {
+                    detailElement.innerHTML = data.page;
+                }
+            })
+            .catch(error => {
+                console.error('Errore durante il recupero dei dettagli del prodotto:', error);
+                const detailElement = document.getElementById(detailId);
+                if (detailElement) {
+                    detailElement.innerHTML = '<div class="alert alert-danger">Errore nel caricamento dei dettagli</div>';
+                }
+            });
+        }, 100);
+
+        // Restituisce il placeholder
+        return `
+            <div id="${detailId}" class="p-3">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">Caricamento...</span>
+                    </div>
+                    <p class="mt-2">Caricamento dettagli prodotto...</p>
+                </div>
+            </div>
+        `;
+    }
+
+    function emitPrestashopCartDone(resp)
+    {
+        prestashop.emit("updateCart", {
+            resp: resp,
+            reason: {
+                cart: resp.cart,
+                idProduct: resp.id_product,
+                idProductAttribute: resp.id_product_attribute,
+                idCustomization: 0,
+                linkAction: "add-to-cart",
+                quantity: resp.quantity,
+            },
+        });
+    }
+
+    function fetchProductsList(params)
+    {
+        const searchParams = {
+            brand: $("#search-brand").val(),
+            reference: document.getElementById("search-reference").value,
+            ean13: document.getElementById("search-ean13").value,
+            measure: document.getElementById("search-measure").value,
+            price_min: document.getElementById("search-price-min").value,
+            price_max: document.getElementById("search-price-max").value,
+            delivery: document.getElementById("search-delivery").value,
+        };
+
+        const requestParams = {
+            action: "getProductsList",
+            idCategory: $idCategory,
+            ajax: 1,
+            limit: params.limit || 10,
+            offset: params.offset || 0,
+            sort: params.sort || "id_product",
+            order: params.order || "asc",
+            search: JSON.stringify(searchParams),
+        };
+
+        console.log('Parametri richiesta:', requestParams);
+        
+        return fetch(frontControllerUrl, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams(requestParams)
+        })
+        .then(response => {
+            console.log("RESPONSE status:", response.status);
+            
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Dati ricevuti json:', data);
+            console.log('Tipo di dato:', typeof data);
+            console.log('Ha success?', data.success);
+            console.log('Total:', data.total);
+            console.log('Rows length:', data.rows ? data.rows.length : 0);
+            return data;
+        })
+        .catch(error => {
+            console.error('Errore durante la richiesta:', error);
+            return {
+                success: false,
+                total: 0,
+                rows: []
+            };
+        });
+    }
+
+    // Response handler per bootstrap-table
+    function responseHandler (res) {
+        console.log("response handler", res);
+        
+        if (res.success) {
+            $("#total-products").text(res.total);
+            return {
+                total: res.total,
+                rows: res.rows,
+            };
+        }
+        return {
+            total: 0,
+            rows: [],
+        };
+    };
+
+    function initProductsTable() {
+        $table = $("#products-table");
+        $idCategory = "{{ idCategory }}";
+        var searchFilters = {};
+
+        // Query params per bootstrap-table server-side
+        window.queryParams = function (params) {
+            return {
+                action: "getProductsList",
+                idCategory: $idCategory,
+                ajax: 1,
+                limit: params.limit,
+                offset: params.offset,
+                sort: params.sort,
+                order: params.order,
+                search: params.search,
+                ...searchFilters,
+            };
+        };
+
+        // Formatter per immagine
+        window.imageFormatter = function (value, row) {
+            if (row.cover && row.cover.bySize && row.cover.bySize.small_default) {
+                return '<img src="' + row.cover.bySize.small_default.url + '" alt="' + row.name + '" class="img-thumbnail" style="max-width: 60px; height: auto" />';
+            }
+            return '<span class="text-muted">N/A</span>';
+        };
+
+        // Formatter per nome prodotto
+        window.nameFormatter = function (value, row) {
+            var html = '<div class="product-name"><strong>' + value + "</strong>";
+            if (row.manufacturer_name) {
+                html += '<br /><small class="text-muted">' + row.manufacturer_name + "</small>";
+            }
+            html += "</div>";
+            return html;
+        };
+
+        // Formatter per riferimento
+        window.referenceFormatter = function (value, row) {
+            return "<code>" + (value || "N/A") + "</code>";
+        };
+
+        // Formatter per prezzo
+        window.priceFormatter = function (value, row) {
+            return '<span class="badge bg-success">' + value + "</span>";
+        };
+
+        // Formatter per data consegna
+        window.deliveryFormatter = function (value, row) {
+            return '<span class="text-muted"><i class="material-icons" style="font-size: 16px; vertical-align: middle">local_shipping</i> ' + (value || "Non disponibile") + "</span>";
+        };
+
+        // Gestione ricerca
+        $("#product-search-form").on("submit", function (e) {
+            e.preventDefault();
+
+            searchFilters = {
+                product: $("#search-product").val(),
+                reference: $("#search-reference").val(),
+                priceMin: $("#search-price-min").val(),
+                priceMax: $("#search-price-max").val(),
+                deliveryDate: $("#search-delivery").val(),
+            };
+
+            // Azzera l'offset e ricarica dalla prima pagina
+            $table.bootstrapTable("refreshOptions", {
+                pageNumber: 1
+            });
+            console.log("Ricerca prodotti:", searchFilters);
+        });
+
+        // Reset form
+        $("#product-search-form").on("reset", function () {
+            setTimeout(function () {
+                searchFilters = {};
+                // Azzera l'offset e ricarica dalla prima pagina
+                $table.bootstrapTable("refreshOptions", {
+                    pageNumber: 1
+                });
+            }, 10);
+        });
+
+        /**
+         * Funzione per aggiungere un prodotto al carrello PrestaShop
+         * @param {number} productId - ID del prodotto
+         * @param {number} quantity - Quantità da aggiungere
+         * @param {number} idProductAttribute - ID attributo prodotto (opzionale, default 0)
+         * @param {function} successCallback - Callback in caso di successo
+         * @param {function} errorCallback - Callback in caso di errore
+         */
+        function addProductToCart(productId, quantity, idProductAttribute, successCallback, errorCallback) {
+            idProductAttribute = idProductAttribute || 0;
+            quantity = quantity || 1;
+
+            console.log('Aggiunta al carrello:', {
+                productId: productId,
+                quantity: quantity,
+                idProductAttribute: idProductAttribute
+            });
+
+            // Dati per la richiesta AJAX
+            const cartData = {
+                controller: 'cart',
+                action: "update",
+                add: 1,
+                ajax: true,
+                qty: quantity,
+                id_product: productId,
+                token: prestashop.static_token || "{{ tokenString }}"
+            };
+
+            // Aggiungi id_product_attribute se presente
+            if (idProductAttribute > 0) {
+                cartData.id_product_attribute = idProductAttribute;
+            }
+
+            // Effettua la richiesta AJAX
+            $.ajax({
+                url: prestashop.urls.pages.cart || '?controller=cart',
+                method: 'POST',
+                data: cartData,
+                dataType: 'json',
+                beforeSend: function() {
+                    // Mostra loader o disabilita pulsante
+                    console.log('Invio richiesta al carrello...');
+                },
+                success: function(response) {
+                    console.log('Risposta carrello:', response);
+                    
+                    if (response.success) {
+                        // Aggiorna il blocco carrello se esiste
+                        if (typeof prestashop !== 'undefined' && prestashop.emit) {
+                            console.log("Emitting Prestashop cart");
+                            const reason = {
+                                cart: response.cart,
+                                id_product: productId,
+                                id_product_attribute: idProductAttribute,
+                                linkAction: 'add-to-cart',
+                                quantity: quantity
+                            };
+                            emitPrestashopCartDone(reason);
+                        }
+
+                        // Callback di successo
+                        if (typeof successCallback === 'function') {
+                            successCallback(response);
+                        } else {
+                            // Comportamento di default
+                            showNotification('Prodotto aggiunto al carrello!', 'success');
+                        }
+                    } else {
+                        // Errore nella risposta
+                        const errorMsg = response.errors ? response.errors.join(', ') : 'Errore durante l\'aggiunta al carrello';
+                        
+                        if (typeof errorCallback === 'function') {
+                            errorCallback(errorMsg);
+                        } else {
+                            showNotification(errorMsg, 'error');
+                        }
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Errore AJAX:', {xhr: xhr, status: status, error: error});
+                    
+                    const errorMsg = 'Errore di connessione durante l\'aggiunta al carrello';
+                    
+                    if (typeof errorCallback === 'function') {
+                        errorCallback(errorMsg);
+                    } else {
+                        showNotification(errorMsg, 'error');
+                    }
+                },
+                complete: function() {
+                    // Nascondi loader o riabilita pulsante
+                    console.log('Richiesta completata');
+                }
+            });
+        }
+
+        /**
+         * Mostra una notifica all'utente
+         * @param {string} message - Messaggio da mostrare
+         * @param {string} type - Tipo di notifica (success, error, warning, info)
+         */
+        function showNotification(message, type) {
+            type = type || 'info';
+            
+            // Se esiste il sistema di notifiche di PrestaShop
+            if (typeof prestashop !== 'undefined' && prestashop.emit) {
+                prestashop.emit('showNotification', {
+                    message: message,
+                    type: type
+                });
+            } else {
+                // Fallback con alert
+                alert(message);
+            }
+        }
+
+        // Gestione pulsanti azioni
+        $(document).on("click", ".btn-view", function () {
+            var productId = $(this).data("product-id");
+            console.log("Visualizza prodotto:", productId);
+            // Implementa la logica di visualizzazione
+            window.open('/index.php?controller=product&id_product=' + productId, '_blank');
+        });
+
+        $(document).on("click", ".btn-add-cart", function () {
+            var $btn = $(this);
+            var tr = $btn.closest("tr");
+            var productId = $btn.data("product-id");
+            var quantity = tr.find(".cart-quantity-input").val();
+            
+            // Disabilita il pulsante durante l'operazione
+            $btn.prop('disabled', true);
+            
+            // Aggiungi al carrello
+            addProductToCart(
+                productId,
+                quantity,
+                0, // id_product_attribute
+                function(response) {
+                    // Successo
+                    showNotification('Prodotto aggiunto al carrello con successo!', 'success');
+                    $btn.prop('disabled', false);
+                },
+                function(error) {
+                    // Errore
+                    showNotification(error, 'error');
+                    $btn.prop('disabled', false);
+                }
+            );
+        });
+
+        $(document).on("click", ".btn-details", function () {
+            var productId = $(this).data("product-id");
+            console.log("Dettagli prodotto:", productId);
+            // Implementa la logica per mostrare i dettagli
+        });
+
+        $table.bootstrapTable(
+            {
+                method: "POST",
+                responseHandler: function (params) {
+                    return responseHandler(params);
+                },
+                toolbar: "#table-toolbar",
+                sidePagination: "server",
+                pagination: true,
+                pageSize: 10,
+                pageList: [10, 25, 50, 100],
+                showRefresh: true,
+                showColumns: false,
+                showExport: false,
+                toggle: "table",
+                search: false,
+                sortName: "id",
+                sortOrder: "asc",
+                detailView: true, // Abilita le detail rows
+                detailFormatter: formatDetailProduct,
+                ajax: function (params) {
+                    console.log("AJAX params ricevuti da Bootstrap Table:", params);
+                    fetchProductsList(params.data)
+                        .then(function(data) {
+                            console.log("Data prima di success:", data);
+                            params.success(data);
+                        })
+                        .catch(function(error) {
+                            console.error("Errore in ajax:", error);
+                            params.error(error);
+                        });
+                },
+                columns: [
+                    {
+                        field: "image",
+                        title: "Immagine",
+                        align: "center",
+                        width: 50,
+                        formatter: formatImage,
+                    },
+                    {
+                        field: "name",
+                        title: "Prodotto",
+                        align: "left",
+                        width: 200,
+                        formatter: formatProduct,
+                    },
+                    {
+                        field: "brand",
+                        title: "Marca",
+                        align: "center",
+                        width: 100,
+                        formatter: formatBrand,
+                    },
+                    {
+                        field: "price",
+                        title: "Prezzo",
+                        align: "center",
+                        width: 100,
+                        formatter: formatPrice,
+                    },
+                    {
+                        field: "stock",
+                        title: "Magazzino",
+                        align: "center",
+                        width: 100,
+                        formatter: formatQuantity,
+                    },
+                    {
+                        field: "delivery_date",
+                        title: "Data consegna",
+                        align: "center",
+                        width: 100,
+                        formatter: function(value, row, index) {
+                            return formatDateDelivery(value, row);
+                        }
+                    },
+                    {
+                        field: "id",
+                        title: "Carrello",
+                        align: "center",
+                        width: 130,
+                        formatter: function(value, row, index) {
+                            return formatActions(value, row);
+                        }
+                    },
+                ],
+            }
+        );
+    }
+</script>

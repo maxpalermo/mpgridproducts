@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Copyright since 2007 PrestaShop SA and Contributors
  * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
@@ -19,17 +20,16 @@
  */
 
 use MpSoft\MpGridProducts\Adapter\PriceListAdapter;
+use MpSoft\MpGridProducts\Helpers\getTwigEnvironment;
+use MpSoft\MpGridProducts\Helpers\TwigHelper;
 use MpSoft\MpGridProducts\Traits\HumanTimingTrait;
-use PrestaShop\PrestaShop\Adapter\Category\CategoryProductSearchProvider;
-use PrestaShop\PrestaShop\Adapter\Search\SearchProductSearchProvider;
-use PrestaShop\PrestaShop\Core\Product\Search\ProductSearchContext;
-use PrestaShop\PrestaShop\Core\Product\Search\ProductSearchQuery;
-use PrestaShop\PrestaShop\Core\Product\Search\SortOrder;
 
 class MpGridProductsCronModuleFrontController extends ModuleFrontController
 {
     use HumanTimingTrait;
+
     private $id_lang;
+
     /**
      * Process the Ajax request
      */
@@ -47,6 +47,7 @@ class MpGridProductsCronModuleFrontController extends ModuleFrontController
         if (method_exists($this, $action) && $ajax) {
             $result = $this->$action($params);
             header('Content-Type: application/json');
+            http_response_code(200);
             exit(json_encode($result));
         }
 
@@ -65,6 +66,12 @@ class MpGridProductsCronModuleFrontController extends ModuleFrontController
         parent::initContent();
     }
 
+    protected function response($data, $httpCode = 200)
+    {
+        header('Content-Type: application/json');
+        http_response_code($httpCode);
+        exit(json_encode($data));
+    }
 
     public function addToCartAction($params)
     {
@@ -95,193 +102,228 @@ class MpGridProductsCronModuleFrontController extends ModuleFrontController
         ];
     }
 
-    /**
-     * Applica i filtri alla query di ricerca
-     * 
-     * @param ProductSearchQuery $query La query di ricerca
-     * @param array $filters I filtri da applicare
-     */
-    protected function applyFiltersToQuery($query, $filters)
+    protected function getProductsListAction()
     {
-        // Gestione dei filtri per categoria
-        if (isset($filters['category'])) {
-            $categoryIds = array_map('intval', $filters['category']);
-            if (!empty($categoryIds)) {
-                $query->setIdCategory($categoryIds[0]);
-            }
-        }
-
-        // Gestione dei filtri per produttore/marca
-        if (isset($filters['manufacturer'])) {
-            $manufacturerIds = array_map('intval', $filters['manufacturer']);
-            if (!empty($manufacturerIds)) {
-                $query->setIdManufacturer($manufacturerIds[0]);
-            }
-        }
-
-        // Gestione dei filtri per fornitore
-        if (isset($filters['supplier'])) {
-            $supplierIds = array_map('intval', $filters['supplier']);
-            if (!empty($supplierIds)) {
-                $query->setIdSupplier($supplierIds[0]);
-            }
-        }
-
-        // Gestione dei filtri per prezzo
-        if (isset($filters['price'])) {
-            $priceRange = $filters['price'];
-            if (count($priceRange) >= 2) {
-                $minPrice = (float) $priceRange[0];
-                $maxPrice = (float) $priceRange[1];
-
-                // Imposta il filtro di prezzo utilizzando l'encoder di facetedsearch
-                $encodedFacets = $query->getEncodedFacets();
-                if ($encodedFacets) {
-                    $encodedFacets .= '/price-' . $minPrice . '-' . $maxPrice;
-                } else {
-                    $encodedFacets = 'price-' . $minPrice . '-' . $maxPrice;
-                }
-                $query->setEncodedFacets($encodedFacets);
-            }
-        }
-
-        // Gestione di altri filtri (attributi, caratteristiche, tag, ecc.)
-        foreach ($filters as $filterType => $filterValues) {
-            if (!in_array($filterType, ['category', 'manufacturer', 'supplier', 'price'])) {
-                // Per gli altri tipi di filtri, aggiungiamo all'encodedFacets
-                $encodedFacets = $query->getEncodedFacets();
-                $filterValueString = implode('-', $filterValues);
-
-                if ($encodedFacets) {
-                    $encodedFacets .= '/' . $filterType . '-' . $filterValueString;
-                } else {
-                    $encodedFacets = $filterType . '-' . $filterValueString;
-                }
-
-                $query->setEncodedFacets($encodedFacets);
-            }
-        }
+        // Get pagination parameters from bootstrap-table
+        return $this->getProductsAction(null);
     }
 
     protected function getProductsAction($params)
     {
         $params = null;
-        // Get pagination parameters
-        $page = (int) Tools::getValue('page', 1);
-        $limit = (int) Tools::getValue('limit', 10);
+        // Get pagination parameters from bootstrap-table
+        $offset = (int) Tools::getValue('offset', 0);
+        $limit = (int) Tools::getValue('limit', 25);
+        $search = json_decode(Tools::getValue('search', []), true);
+
+        $page = floor($offset / $limit) + 1;
 
         // Get category ID if available
-        $categoryId = (int) Tools::getValue('category_id', 0);
+        $categoryId = (int) Tools::getValue('idCategory', 0);
 
-        // Get search query if available
-        $searchString = Tools::getValue('search_query', '');
-
-        // Get sort options
-        $orderBy = Tools::getValue('order_by', 'position');
-        $orderWay = Tools::getValue('order_way', 'asc');
+        // Get sort options from bootstrap-table
+        $orderBy = Tools::getValue('sort', 'id_product');
+        $orderWay = Tools::getValue('order', 'asc');
 
         // Validazione dei parametri di ordinamento
-        $validOrderByValues = ['position', 'name', 'price', 'date_add', 'reference', 'id_product'];
+        $validOrderByValues = ['name', 'price', 'date_add', 'reference', 'id_product'];
         $validOrderWayValues = ['asc', 'desc'];
 
         if (!in_array($orderBy, $validOrderByValues)) {
-            $orderBy = 'position';
+            $orderBy = 'id_product';
         }
 
         if (!in_array(strtolower($orderWay), $validOrderWayValues)) {
             $orderWay = 'asc';
         }
 
-        // Get filter parameters (from faceted search)
-        $filters = Tools::getValue('filters', []);
-        if (!empty($filters) && is_string($filters)) {
-            $filters = json_decode($filters, true);
-        }
+        // Get search filters from toolbar
+        $brandFilter = $search['brand'] ?? '';
+        $referenceFilter = $search['reference'] ?? '';
+        $ean13Filter = $search['ean13'] ?? '';
+        $measureFilter = $search['measure'] ?? '';
+        $priceMinFilter = $search['price_min'] ?? '';
+        $priceMaxFilter = $search['price_max'] ?? '';
+        $deliveryDateFilter = $search['delivery'] ?? '';
 
         try {
-            // Crea un contesto di ricerca
-            $searchContext = new ProductSearchContext($this->context);
+            // Costruisci la query SQL diretta
+            $sql = new \DbQuery();
+            $sql->select('p.id_product, pl.name, pl.description_short, pl.link_rewrite');
+            $sql->select('p.reference, p.ean13, p.price, p.id_manufacturer, pl.delivery_in_stock');
+            $sql->select('m.name as manufacturer_name');
+            $sql->select('image_shop.id_image');
+            $sql->select('product_shop.active, product_shop.price as price_tax_exc');
 
-            // Crea una query di ricerca
-            $query = new ProductSearchQuery();
-            $query->setResultsPerPage($limit);
-            $query->setPage($page);
+            $sql->from('product', 'p');
+            $sql->innerJoin('product_shop', 'product_shop', 'product_shop.id_product = p.id_product AND product_shop.id_shop = ' . (int) $this->context->shop->id);
+            $sql->leftJoin('product_lang', 'pl', 'p.id_product = pl.id_product AND pl.id_lang = ' . (int) $this->id_lang . ' AND pl.id_shop = ' . (int) $this->context->shop->id);
+            $sql->leftJoin('manufacturer', 'm', 'p.id_manufacturer = m.id_manufacturer');
+            $sql->leftJoin('image_shop', 'image_shop', 'image_shop.id_product = p.id_product AND image_shop.cover = 1 AND image_shop.id_shop = ' . (int) $this->context->shop->id);
 
-            // Imposta l'ordinamento corretto
-            // SortOrder richiede entity, field e direction
-            // Esempio: product, name, asc
-            $entity = 'product';
-            $field = $orderBy;
-            $direction = $orderWay;
-            $query->setSortOrder(new SortOrder($entity, $field, $direction));
-
-            // Imposta la categoria se fornita
+            // Filtro per categoria
             if ($categoryId > 0) {
-                $query->setIdCategory($categoryId);
-                $category = new Category($categoryId, $this->context->language->id);
-                $searchProvider = new CategoryProductSearchProvider(
-                    $this->context->getTranslator(),
-                    $category
-                );
-            } elseif (!empty($searchString)) {
-                // Pagina di ricerca
-                $query->setSearchString($searchString);
-                $searchProvider = new SearchProductSearchProvider(
-                    $this->context->getTranslator()
-                );
-            } else {
-                // Default a tutti i prodotti
-                // Utilizziamo il controller di categoria con ID 2 (Home)
-                $category = new Category(2, $this->context->language->id);
-                $searchProvider = new CategoryProductSearchProvider(
-                    $this->context->getTranslator(),
-                    $category
-                );
+                // $sql->innerJoin('category_product', 'cp', 'p.id_product = cp.id_product AND cp.id_category = ' . (int) $categoryId);
+                $sql->where('p.id_category_default = ' . (int) $categoryId);
             }
 
-            // Applica i filtri se disponibili
-            if (!empty($filters)) {
-                // Applica i filtri alla query
-                $this->applyFiltersToQuery($query, $filters);
+            // Filtri dalla toolbar
+            $sql->where('product_shop.active = 1');
 
-                // Utilizza anche l'hook per la compatibilità con altri moduli
-                Hook::exec('productSearchProvider', [
-                    'query' => $query,
-                    'filters' => $filters
-                ]);
+            if (!empty($brandFilter)) {
+                $sql->where('p.id_manufacturer = ' . (int) $brandFilter);
             }
 
-            // Esegui la ricerca
-            $result = $searchProvider->runQuery($searchContext, $query);
+            if (!empty($referenceFilter)) {
+                $sql->where('p.reference LIKE "%' . pSQL($referenceFilter) . '%"');
+            }
 
-            // Ottieni i prodotti dal risultato
-            $rawProducts = $result->getProducts();
+            if (!empty($ean13Filter)) {
+                $ean13Filter = trim(str_replace(' ', '', $ean13Filter));
+                $sql->where('p.ean13 LIKE "%' . pSQL($ean13Filter) . '%"');
+            }
+
+            if (!empty($priceMinFilter)) {
+                $sql->where('product_shop.price >= ' . (float) $priceMinFilter);
+            }
+
+            if (!empty($priceMaxFilter)) {
+                $sql->where('product_shop.price <= ' . (float) $priceMaxFilter);
+            }
+
+            if (!empty($deliveryDateFilter)) {
+                $sql->where('pl.delivery_in_stock <= "' . pSQL($deliveryDateFilter) . '"');
+            }
+
+            // Filtro per misura (feature)
+            if (!empty($measureFilter)) {
+                $sql->innerJoin('feature_product', 'fp', 'p.id_product = fp.id_product');
+                $sql->innerJoin('feature_value_lang', 'fvl', 'fp.id_feature_value = fvl.id_feature_value AND fvl.id_lang = ' . (int) $this->id_lang);
+                $sql->innerJoin('feature_lang', 'fl', 'fp.id_feature = fl.id_feature AND fl.id_lang = ' . (int) $this->id_lang);
+                $sql->where('LOWER(fl.name) = "grandezza" AND fvl.value LIKE "%' . pSQL($measureFilter) . '%"');
+            }
+
+            // Conta totale prima della paginazione (costruisci una query separata per il count)
+            $sqlCountStr = 'SELECT COUNT(DISTINCT p.id_product) as total '
+                . 'FROM ' . _DB_PREFIX_ . 'product p '
+                . 'INNER JOIN ' . _DB_PREFIX_ . 'product_shop product_shop ON (product_shop.id_product = p.id_product AND product_shop.id_shop = ' . (int) $this->context->shop->id . ') '
+                . 'WHERE product_shop.active = 1';
+
+            // Aggiungi le stesse condizioni WHERE della query principale
+            if ($categoryId > 0) {
+                $sqlCountStr .= ' AND EXISTS (SELECT 1 FROM ' . _DB_PREFIX_ . 'category_product cp WHERE cp.id_product = p.id_product AND cp.id_category = ' . (int) $categoryId . ')';
+            }
+            if (!empty($brandFilter)) {
+                $sqlCountStr .= ' AND p.id_manufacturer = ' . (int) $brandFilter;
+            }
+            if (!empty($referenceFilter)) {
+                $sqlCountStr .= ' AND p.reference LIKE "%' . pSQL($referenceFilter) . '%"';
+            }
+            if (!empty($ean13Filter)) {
+                $sqlCountStr .= ' AND p.ean13 LIKE "%' . pSQL($ean13Filter) . '%"';
+            }
+            if (!empty($priceMinFilter)) {
+                $sqlCountStr .= ' AND product_shop.price >= ' . (float) $priceMinFilter;
+            }
+            if (!empty($priceMaxFilter)) {
+                $sqlCountStr .= ' AND product_shop.price <= ' . (float) $priceMaxFilter;
+            }
+            if (!empty($deliveryDateFilter)) {
+                $sqlCountStr .= ' AND pl.delivery_in_stock <= "' . pSQL($deliveryDateFilter) . '"';
+            }
+            if (!empty($measureFilter)) {
+                $sqlCountStr .= ' AND EXISTS (SELECT 1 FROM ' . _DB_PREFIX_ . 'feature_product fp '
+                    . 'INNER JOIN ' . _DB_PREFIX_ . 'feature_value_lang fvl ON fp.id_feature_value = fvl.id_feature_value AND fvl.id_lang = ' . (int) $this->id_lang . ' '
+                    . 'INNER JOIN ' . _DB_PREFIX_ . 'feature_lang fl ON fp.id_feature = fl.id_feature AND fl.id_lang = ' . (int) $this->id_lang . ' '
+                    . 'WHERE fp.id_product = p.id_product AND LOWER(fl.name) = "grandezza" AND fvl.value LIKE "%' . pSQL($measureFilter) . '%")';
+            }
+
+            $totalProducts = (int) \Db::getInstance()->getValue($sqlCountStr);
+
+            // Ordinamento
+            $sql->orderBy('p.' . pSQL($orderBy) . ' ' . pSQL($orderWay));
+
+            // Paginazione
+            $sql->limit($limit, $offset);
+
+            // Esegui la query
+            $rawProducts = \Db::getInstance()->executeS($sql);
+
+            if (!$rawProducts) {
+                $rawProducts = [];
+            }
 
             // Formatta i prodotti per la risposta
             $formattedProducts = [];
 
-            // Inserisco l'icona del tipo di vettura
-            $vehicles = [
-                "C1" => "directions_car",
-                "C2" => "airport_shuttle",
-                "C3" => "local_shipping"
-            ];
-
-            // Utilizza un approccio più semplice per formattare i prodotti
             foreach ($rawProducts as $rawProduct) {
+                $product = new \Product($rawProduct['id_product'], false, $this->id_lang);
+
                 // Estrai le informazioni essenziali dal prodotto
-                $pricelistRow = $this->getPriceListRow($rawProduct['id_product']);
+                $pricelistRow = [];  // $this->getPriceListRow($rawProduct['id_product']);
                 if (!$pricelistRow) {
                     $pricelistRow = [];
+                }
+
+                if ($product->delivery_in_stock) {
+                    $product->delivery_in_stock = date('Y-m-d', strtotime($product->delivery_in_stock . ' +1 day'));
+                }
+
+                // Crea un array con i nomi dei mesi in italiano
+                $mesi_italiani = [
+                    1 => 'Gen',
+                    2 => 'Feb',
+                    3 => 'Mar',
+                    4 => 'Apr',
+                    5 => 'Mag',
+                    6 => 'Giu',
+                    7 => 'Lug',
+                    8 => 'Ago',
+                    9 => 'Set',
+                    10 => 'Ott',
+                    11 => 'Nov',
+                    12 => 'Dic'
+                ];
+
+                // Modifica la riga che imposta month_delivery
+                $monthDelivery = $product->delivery_in_stock
+                    ? $mesi_italiani[(int) date('n', strtotime((string) $product->delivery_in_stock))]
+                    : 'mag';
+
+                $dayDelivery = $product->delivery_in_stock
+                    ? date('d', strtotime($product->delivery_in_stock))
+                    : 'sud';
+
+                // Veicolo
+                // Inserisco l'icona del tipo di vettura
+                $vehicles = [
+                    'C1' => 'directions_car',
+                    'C2' => 'airport_shuttle',
+                    'C3' => 'local_shipping'
+                ];
+                $frontFeatures = $product->getFrontFeatures($this->id_lang);
+                $iconToolbar = $this->createIconToolbar($frontFeatures);
+
+                $pfu = $this->getPfu($product->id);
+                $pfuName = $pfu['name'];
+                if ($pfu['price']) {
+                    $pfuPrice = Context::getContext()->getCurrentLocale()->formatPrice((float) $pfu['price'], Currency::getIsoCodeById($this->context->currency->id));
+                } else {
+                    $pfuPrice = '';
                 }
 
                 $product = [
                     'id' => $rawProduct['id_product'],
                     'name' => $rawProduct['name'],
                     'description_short' => $rawProduct['description_short'],
-                    'price' => $rawProduct['price'],
+                    'price' => (float) $rawProduct['price'],
                     'price_formatted' => $this->context->getCurrentLocale()->formatPrice(
-                        $rawProduct['price'],
+                        (float) $rawProduct['price'],
+                        Currency::getIsoCodeById($this->context->currency->id)
+                    ),
+                    'price_tax_exc' => (float) $rawProduct['price_tax_exc'],
+                    'price_tax_exc_formatted' => $this->context->getCurrentLocale()->formatPrice(
+                        (float) $rawProduct['price_tax_exc'],
                         Currency::getIsoCodeById($this->context->currency->id)
                     ),
                     'reference' => isset($rawProduct['reference']) ? $rawProduct['reference'] : '',
@@ -296,16 +338,14 @@ class MpGridProductsCronModuleFrontController extends ModuleFrontController
                         'id_product' => $rawProduct['id_product'],
                         'token' => Tools::getToken(false)
                     ]),
-
+                    'date_delivery' => date('d/m', strtotime($product->delivery_in_stock ?: 'now')),
+                    'day_delivery' => $dayDelivery,
+                    'month_delivery' => $monthDelivery,
+                    'pfu_name' => $pfuName,
+                    'pfu_price' => $pfuPrice,
+                    'icon_toolbar' => $iconToolbar,
+                    'ean13' => $product->ean13,
                 ];
-
-                foreach ($rawProduct['features'] as $feature) {
-                    if ($feature['name'] == 'Classe Veicolo') {
-                        $product['icon_vehicle'] = $vehicles[$feature['value']] ?? "help";
-                        break;
-                    }
-                }
-
 
                 // Aggiungi l'immagine se disponibile
                 if (isset($rawProduct['id_image']) && $rawProduct['id_image']) {
@@ -321,28 +361,129 @@ class MpGridProductsCronModuleFrontController extends ModuleFrontController
                 $formattedProducts[] = $product;
             }
 
-            // Prepara la risposta
+            // Prepara la risposta per bootstrap-table server-side
             $response = [
-                'products' => $formattedProducts,
-                'pagination' => [
-                    'total_items' => $result->getTotalProductsCount(),
-                    'items_shown_from' => ($page - 1) * $limit + 1,
-                    'items_shown_to' => min($page * $limit, $result->getTotalProductsCount()),
-                    'current_page' => $page,
-                    'pages_count' => ceil($result->getTotalProductsCount() / $limit),
-                ]
+                'success' => true,
+                'total' => $totalProducts,
+                'rows' => $formattedProducts,
             ];
 
             // Restituisci la risposta come JSON
-            exit($this->ajaxRender(json_encode($response)));
-
+            $this->response($response, 200);
         } catch (Exception $e) {
-            // Gestisci eventuali errori
-            exit($this->ajaxRender(json_encode([
+            $this->response([
                 'error' => true,
                 'message' => $e->getMessage()
-            ])));
+            ]);
         }
+    }
+
+    protected function createIconToolbar($features)
+    {
+        $icons = [];
+        foreach ($features as $feature) {
+            $value = strtolower($feature['value']);
+            switch (strtolower($feature['name'])) {
+                case 'grandezza':
+                    break;
+                case 'livello rumore':
+                    $icons[] = "
+                        <div class=\"icon-box gap-4px\" title=\"Livello rumore: {$value}\">
+                            <span class=\"fa fa-volume-up\"></span>
+                            <span>$value</span>
+                        </div>
+                    ";
+                    break;
+                case 'classe veicolo':
+                    switch ($value) {
+                        case 'c1':
+                            $icons[] = '
+                                <div class="icon-box" title="Classe Veicolo: C1">
+                                    <span class="fa fa-car"></span>
+                                </div>
+                            ';
+                            break;
+                        case 'c2':
+                            $icons[] = '
+                                <div class="icon-box" title="Classe Veicolo: C2">
+                                    <span class="fa fa-bus"></span>
+                                </div>
+                            ';
+                            break;
+                        case 'c3';
+                            $icons[] = '
+                                <div class="icon-box" title="Classe Veicolo: C3">
+                                    <span class="fa fa-truck"></span>
+                                </div>
+                            ';
+                            break;
+                    }
+                    break;
+                case 'uso':
+                    switch ($value) {
+                        case 'pneumatici 4 stagioni':
+                            $icons[] = '
+                                <div class="icon-box gap-4px" title="Uso: Pneumatici 4 stagioni">
+                                    <span class="icon-tyre-sun"></span>
+                                    <span class="icon-tyre-snow"></span>
+                                </div>
+                            ';
+                            break;
+                        case 'estivi':
+                            $icons[] = '
+                                <div class="icon-box gap-4px" title="Uso: Estivi">
+                                    <span class="icon-tyre-sun"></span>
+                                </div>
+                            ';
+                            break;
+                        case 'invernali':
+                            $icons[] = '
+                                <div class="icon-box gap-4px" title="Uso: Invernali">
+                                    <span class="icon-tyre-snow"></span>
+                                </div>
+                            ';
+                            break;
+                    }
+                    break;
+                case 'm+s':
+                    break;
+            }
+        }
+
+        if ($icons) {
+            $icons = implode('', $icons);
+            return "
+                <div class=\"d-flex justify-content-start align-items-center gap-2\">
+                    {$icons}
+                </div>
+            ";
+        }
+
+        return '';
+    }
+
+    public function getPfu($id_product)
+    {
+        $id_lang = (int) Context::getContext()->language->id;
+        $db = \Db::getInstance();
+        $query = new DbQuery();
+        $query
+            ->select('p.id_product, pl.name, p.price')
+            ->from('product_pfu', 'pfu')
+            ->innerJoin('product', 'p', 'p.id_product=pfu.id_pfu')
+            ->innerJoin('product_lang', 'pl', "pl.id_product=pfu.id_pfu and pl.id_lang = {$id_lang}")
+            ->where("pfu.id_product = {$id_product}");
+
+        $result = $db->getRow($query);
+        if (!$result) {
+            return [
+                'id_product' => '',
+                'name' => '',
+                'price' => '',
+            ];
+        }
+
+        return $result;
     }
 
     public function getDateShipping($idT24)
@@ -389,13 +530,15 @@ class MpGridProductsCronModuleFrontController extends ModuleFrontController
         $imageUrl = _PS_IMG_ . 'p/' . $imagePath . '-home_default.jpg';
         $priceList = (new PriceListAdapter())->getPriceLists($product->id);
 
+        $features = $this->formatFeatures($frontFeatures);
+
         $params = [
             'name' => $product->name,
             'reference' => $product->reference,
             'price' => $product->price,
             'ean13' => $product->ean13,
             'image_url' => $imageUrl,
-            'features' => $frontFeatures,
+            'features' => $features,
             'pricesList' => $priceList,
         ];
 
@@ -407,9 +550,66 @@ class MpGridProductsCronModuleFrontController extends ModuleFrontController
         return ['page' => $productInfo];
     }
 
+    public function getProductDetailsAction()
+    {
+        $id_lang = (int) $this->id_lang;
+        $id_product = (int) (\Tools::getValue('idProduct', 0));
+        $product = new Product($id_product, false, $id_lang);
+        $frontFeatures = $product->getFrontFeatures($id_lang);
+        $cover = Product::getCover($id_product);
+        $image = new Image($cover['id_image'] ?? 0, $id_lang);
+        $imagePath = $image->getImgPath();
+        $imageUrl = _PS_IMG_ . 'p/' . $imagePath . '-home_default.jpg';
+        $priceList = (new PriceListAdapter())->getPriceLists($product->id);
+
+        $features = $this->formatFeatures($frontFeatures);
+
+        $params = [
+            'name' => $product->name,
+            'reference' => $product->reference,
+            'price' => $product->price,
+            'ean13' => $product->ean13,
+            'image_url' => $imageUrl,
+            'features' => $features,
+            'pricesList' => $priceList,
+        ];
+
+        $twig = new GetTwigEnvironment($this->module->name);
+        $productInfo = $twig->renderTemplate('@ModuleTwig/product-info.html.twig', $params);
+
+        return ['page' => $productInfo];
+    }
+
+    private function formatFeatures($features)
+    {
+        foreach ($features as &$feature) {
+            if ($feature['name'] == 'M+S') {
+                $value = $feature['value'] == 1 ? 'check' : 'cancel';
+                $feature['value'] = "
+                    <span class=\"material-icons\">
+                        {$value}
+                    </span>
+                ";
+            }
+
+            if (preg_match('/livello rumore/i', $feature['name'])) {
+                $icon_decibel = $this->context->link->getBaseLink() . 'modules/mpgridproducts/views/img/tyre_noise.png';
+                $value = "
+                    <span class=\"decibel\" style=\"width: 64px; display: flex; justify-content: start; gap: 1rem;\">
+                        <img src=\"{$icon_decibel}\" alt=\"Livello rumore\" style=\"width: 32px; object-fit: contain;\">
+                        <strong>{$feature['value']}</strong>
+                    </span>
+                ";
+                $feature['value'] = $value;
+            }
+        }
+
+        return $features;
+    }
+
     /**
      * Recupera il listino prezzi da Tyres24 per un codice prodotto specifico
-     * 
+     *
      * @param string $productCode Codice del prodotto
      * @return array Dati del listino prezzi o array con errore
      */
@@ -468,5 +668,4 @@ class MpGridProductsCronModuleFrontController extends ModuleFrontController
             ];
         }
     }
-
 }

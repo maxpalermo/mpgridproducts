@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Copyright since 2007 PrestaShop SA and Contributors
  * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
@@ -22,8 +21,6 @@
 namespace MpSoft\MpGridProducts\Controllers\Front;
 
 use MpSoft\MpGridProducts\Adapter\PriceListAdapter;
-use MpSoft\MpGridProducts\Helpers\getTwigEnvironment;
-use MpSoft\MpGridProducts\Helpers\TwigHelper;
 
 class ProductListingWrapperController
 {
@@ -31,7 +28,6 @@ class ProductListingWrapperController
     private $context;
     private $module;
     private $id_lang;
-    private $twig;
 
     public function __construct()
     {
@@ -39,8 +35,8 @@ class ProductListingWrapperController
         $this->controller = \Tools::getValue('controller');
         $this->module = \Module::getInstanceByName('mpgridproducts');
         $this->id_lang = (int) \Context::getContext()->language->id;
-        $this->twig = new getTwigEnvironment($this->module->name);
     }
+
 
     /**
      * @param array $params
@@ -48,7 +44,6 @@ class ProductListingWrapperController
      */
     public function renderProductList($params)
     {
-        $values = \Tools::getAllValues();
         // Get the current controller
         $controller = $this->context->controller;
 
@@ -85,6 +80,16 @@ class ProductListingWrapperController
             }
         }
 
+
+        /*
+        //Aggiorno i listini dei prodotti selezionati
+        $priceListAdapter = new PriceListAdapter($listing);
+        foreach ($listing['products'] as $key => &$product) {
+            $product = $priceListAdapter->updateProductValues($product);
+        }
+        */
+
+
         // Get pagination from hook parameters if available
         if (isset($params['pagination']) && is_array($params['pagination'])) {
             $listing['pagination'] = $params['pagination'];
@@ -103,6 +108,13 @@ class ProductListingWrapperController
             $listing['pagination']['total_items'] = max($listing['pagination']['total_items'], $count);
         }
 
+        // Inserisco l'icona del tipo di vettura
+        $vehicles = [
+            "C1" => "directions_car",
+            "C2" => "airpost_shuttle",
+            "C3" => "local_shipping"
+        ];
+
         foreach ($listing['products'] as $key => &$product) {
             $features = $product['features'];
             $toolbar = $this->createIconToolbar($features);
@@ -112,25 +124,24 @@ class ProductListingWrapperController
         }
 
         // Assign template variables
-        $params = [
-            'idCategory' => $values['id_category'] ?? 1,
+        $tplParams = [
             'listing' => $listing,
             'ajax_url' => $this->context->link->getModuleLink($this->module->name, 'Cron'),
-            'frontControllerUrl' => $this->context->link->getModuleLink($this->module->name, 'Cron'),
             'mpgridproducts_items_per_page' => (int) \Configuration::get('MPGRIDPRODUCTS_ITEMS_PER_PAGE'),
             'mpgridproducts_order_by' => \Configuration::get('MPGRIDPRODUCTS_DEFAULT_ORDER_BY'),
             'mpgridproducts_order_way' => \Configuration::get('MPGRIDPRODUCTS_DEFAULT_ORDER_WAY'),
             'fetchProductInfoURL' => $this->getFrontLink(),
             'frontControllerAddToCartUrl' => $this->context->link->getPageLink('cart'),
             'frontControllerAddToCartUrl2' => $this->context->link->getModuleLink($this->module->name, 'Cron'),
-            'tokenString' => \Tools::getToken(false),
-            'brands' => \Manufacturer::getManufacturers(false, $this->id_lang),
+            'tokenString' => \Tools::getToken(false)
         ];
 
-        $template = $this->twig->renderTemplate('@ModuleTwig/product-grid.html.twig', $params);
-
         // Return our template instead of the default one
-        return $template;
+        $tplPath = $this->module->getLocalPath() . 'views/templates/hook/product-grid.tpl';
+        $template = $this->context->smarty->createTemplate($tplPath);
+        $template->assign($tplParams);
+
+        return $template->fetch();
     }
 
     protected function createIconToolbar($features)
@@ -151,62 +162,63 @@ class ProductListingWrapperController
                     break;
                 case 'classe veicolo':
                     switch ($value) {
-                        case 'c1':
-                            $icons[] = '
-                                <div class="d-flex justify-content-start align-items-center gap-2">
-                                    <span class="fa fa-car"></span>
+                        case "c1":
+                            $icons[] = "
+                                <div class=\"d-flex justify-content-start align-items-center gap-2\">
+                                    <span class=\"fa fa-car\"></span>
                                 </div>
-                            ';
+                            ";
                             break;
-                        case 'c2':
-                            $icons[] = '
-                                <div class="d-flex justify-content-start align-items-center gap-2">
-                                    <span class="fa fa-bus"></span>
+                        case "c2":
+                            $icons[] = "
+                                <div class=\"d-flex justify-content-start align-items-center gap-2\">
+                                    <span class=\"fa fa-bus\"></span>
                                 </div>
-                            ';
+                            ";
                             break;
-                        case 'c3';
-                            $icons[] = '
-                                <div class="d-flex justify-content-start align-items-center gap-2">
-                                    <span class="fa fa-truck"></span>
+                        case "c3";
+                            $icons[] = "
+                                <div class=\"d-flex justify-content-start align-items-center gap-2\">
+                                    <span class=\"fa fa-truck\"></span>
                                 </div>
-                            ';
+                            ";
                             break;
                     }
                     break;
                 case 'uso':
                     switch ($value) {
-                        case 'pneumatici 4 stagioni':
-                            $icons[] = '
-                                <div class="d-flex justify-content-start align-items-center gap-2">
-                                    <span class="icon-tyre-sun"></span>
-                                    <span class="icon-tyre-snow"></span>
+                        case "pneumatici 4 stagioni":
+                            $icons[] = "
+                                <div class=\"d-flex justify-content-start align-items-center gap-2\">
+                                    <span class=\"fa fa-sun-o\"></span>
+                                    <span class=\"fa fa-snowflake-o\"></span>
                                 </div>
-                            ';
+                            ";
                             break;
-                        case 'estivi':
-                            $icons[] = '
-                                <div class="d-flex justify-content-start align-items-center gap-2">
-                                    <span class="icon-tyre-sun"></span>
+                        case "estivi":
+                            $icons[] = "
+                                <div class=\"d-flex justify-content-start align-items-center gap-2\">
+                                    <span class=\"fa fa-sun-o\"></span>
                                 </div>
-                            ';
+                            ";
                             break;
-                        case 'invernali':
-                            $icons[] = '
-                                <div class="d-flex justify-content-start align-items-center gap-2">
-                                    <span class="icon-tyre-snow"></span>
+                        case "invernali":
+                            $icons[] = "
+                                <div class=\"d-flex justify-content-start align-items-center gap-2\">
+                                    <span class=\"fa fa-snowflake-o\"></span>
                                 </div>
-                            ';
+                            ";
                             break;
                     }
                     break;
                 case 'm+s':
                     break;
             }
+
         }
 
         if ($icons) {
-            $icons = implode('', $icons);
+            $icons = implode("", $icons);
             return "
                 <div class=\"d-flex justify-content-start align-items-center gap-2\">
                     {$icons};
@@ -215,6 +227,7 @@ class ProductListingWrapperController
         }
 
         return '';
+
     }
 
     public function getFrontLink()
@@ -222,4 +235,5 @@ class ProductListingWrapperController
         $url = $this->context->link->getModuleLink($this->module->name, 'Cron');
         return $url;
     }
+
 }

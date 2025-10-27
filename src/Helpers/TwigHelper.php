@@ -18,25 +18,12 @@
  * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
  */
 
-namespace MpSoft\MpGridProducts\Traits;
+namespace MpSoft\MpGridProducts\Helpers;
 
-trait GetLastErrorTrait
+class TwigHelper extends DependencyHelper
 {
-    /**
-     * Summary of getLastErrorStatic
-     * @return array {type: string, message: string, file: string, line: int}|null
-     */
-    public static function getLastErrorStatic()
+    public function renderView(string $view, array $params = []): string
     {
-        $error = error_get_last();
-        if (!$error) {
-            $error = [
-                'type' => 0,
-                'message' => 'No error',
-                'file' => 'No file',
-                'line' => 0
-            ];
-        }
-        return $error;
+        return parent::renderView($view, $params);
     }
 }

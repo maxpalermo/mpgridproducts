@@ -1,30 +1,34 @@
-/**
- * 2025 MP Soft
+/*
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
  *
  * NOTICE OF LICENSE
  *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
  *
- * @author    MP Soft
- * @copyright 2025 MP Soft
- * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2016 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
  */
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener("DOMContentLoaded", function () {
     // Initialize the grid products
     const mpGridProducts = {
         // DOM elements
-        grid: document.getElementById('mp-grid-products'),
-        table: document.querySelector('.mp-grid-table'),
-        tableBody: document.querySelector('.mp-grid-table tbody'),
-        template: document.getElementById('mp-grid-product-template'),
-        pagination: document.querySelector('.mp-grid-pagination ul'),
-        limitSelect: document.getElementById('mp-grid-limit'),
-        fetchProductInfoURL: document.getElementById('mp-grid-fetch-product-info-url').value,
-        inputQuantity: document.querySelector('.stock-input'),
+        grid: document.getElementById("mp-grid-products"),
+        table: document.querySelector(".mp-grid-table"),
+        tableBody: document.querySelector(".mp-grid-table tbody"),
+        template: document.getElementById("mp-grid-product-template"),
+        pagination: document.querySelector(".mp-grid-pagination ul"),
+        limitSelect: document.getElementById("mp-grid-limit"),
+        fetchProductInfoURL: document.getElementById("mp-grid-fetch-product-info-url").value,
+        inputQuantity: document.querySelector(".stock-input"),
 
         // State
         currentPage: 1,
@@ -32,16 +36,16 @@ document.addEventListener('DOMContentLoaded', function() {
         totalItems: 0,
         totalPages: 0,
         categoryId: 0,
-        searchQuery: '',
-        ajaxUrl: '',
-        orderBy: 'position',
-        orderWay: 'asc',
+        searchQuery: "",
+        ajaxUrl: "",
+        orderBy: "position",
+        orderWay: "asc",
         filters: {},
 
         /**
          * Initialize the grid
          */
-        init: function() {
+        init: function () {
             if (!this.grid) {
                 return;
             }
@@ -49,10 +53,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Get data attributes
             this.ajaxUrl = this.grid.dataset.ajaxUrl;
             this.categoryId = parseInt(this.grid.dataset.categoryId || 0);
-            this.searchQuery = this.grid.dataset.searchQuery || '';
+            this.searchQuery = this.grid.dataset.searchQuery || "";
             this.limit = parseInt(this.grid.dataset.itemsPerPage || 10);
-            this.orderBy = this.grid.dataset.orderBy || 'position';
-            this.orderWay = this.grid.dataset.orderWay || 'asc';
+            this.orderBy = this.grid.dataset.orderBy || "position";
+            this.orderWay = this.grid.dataset.orderWay || "asc";
 
             // Update limit select
             if (this.limitSelect) {
@@ -66,8 +70,8 @@ document.addEventListener('DOMContentLoaded', function() {
             this.loadProducts();
 
             // Listen for faceted search events
-            document.addEventListener('updateProductList', (event) => {
-                console.log('updateProductList event received', event);
+            document.addEventListener("updateProductList", (event) => {
+                console.log("updateProductList event received", event);
                 if (event.detail && event.detail.filters) {
                     this.filters = event.detail.filters;
                     this.currentPage = 1;
@@ -76,9 +80,9 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             // Listen for prestashop facetedsearch events
-            if (typeof prestashop !== 'undefined') {
-                prestashop.on('updateFacets', (param) => {
-                    console.log('updateFacets event received', param);
+            if (typeof prestashop !== "undefined") {
+                prestashop.on("updateFacets", (param) => {
+                    console.log("updateFacets event received", param);
 
                     // Mostra lo stato di caricamento
                     this.tableBody.innerHTML = `
@@ -98,9 +102,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     const originalXHROpen = window.XMLHttpRequest.prototype.open;
                     const originalXHRSend = window.XMLHttpRequest.prototype.send;
 
-                    window.XMLHttpRequest.prototype.open = function() {
+                    window.XMLHttpRequest.prototype.open = function () {
                         const xmlHTTP = this;
-                        xmlHTTP.addEventListener('load', function() {
+                        xmlHTTP.addEventListener("load", function () {
                             if (xmlHTTP.readyState === 4 && xmlHTTP.status === 200) {
                                 console.clear();
                                 try {
@@ -108,30 +112,31 @@ document.addEventListener('DOMContentLoaded', function() {
                                     const url = xmlHTTP.responseURL;
 
                                     // Verifica se json contiene current_url, pagination, products e rendered_facets
-                                    const keys = ['current_url', 'pagination', 'products', 'rendered_facets'];
-                                    if (keys.every(key => json.hasOwnProperty(key))) {
-                                        console.log('Intercepted FacetedSearch response:', json);
+                                    const keys = ["current_url", "pagination", "products", "rendered_facets"];
+                                    if (keys.every((key) => json.hasOwnProperty(key))) {
+                                        console.log("Intercepted FacetedSearch response:", json);
 
                                         // Verifica se la risposta contiene i prodotti
                                         if (json.products && Array.isArray(json.products)) {
                                             // Formatta i prodotti nel formato atteso dal nostro modulo
-                                            const formattedProducts = json.products.map(product => {
-                                                return {
-                                                    id: product.id_product || '',
-                                                    name: product.name || 'Prodotto senza nome',
-                                                    description_short: product.description_short || '',
-                                                    price: typeof product.price_amount !== 'undefined' ? product.price_amount : 0,
-                                                    price_formatted: product.price || '0,00 €',
-                                                    reference: product.reference || '',
-                                                    manufacturer: product.manufacturer_name || '',
-                                                    url: product.url || '#',
-                                                    add_to_cart_url: product.add_to_cart_url || '#',
-                                                    image: product.cover && product.cover.bySize && product.cover.bySize.home_default ?
-                                                        product.cover.bySize.home_default.url : ''
-                                                };
-                                            }).filter(product => product !== null && product.id);
+                                            const formattedProducts = json.products
+                                                .map((product) => {
+                                                    return {
+                                                        id: product.id_product || "",
+                                                        name: product.name || "Prodotto senza nome",
+                                                        description_short: product.description_short || "",
+                                                        price: typeof product.price_amount !== "undefined" ? product.price_amount : 0,
+                                                        price_formatted: product.price || "0,00 €",
+                                                        reference: product.reference || "",
+                                                        manufacturer: product.manufacturer_name || "",
+                                                        url: product.url || "#",
+                                                        add_to_cart_url: product.add_to_cart_url || "#",
+                                                        image: product.cover && product.cover.bySize && product.cover.bySize.home_default ? product.cover.bySize.home_default.url : "",
+                                                    };
+                                                })
+                                                .filter((product) => product !== null && product.id);
 
-                                            console.log('Formatted products:', formattedProducts);
+                                            console.log("Formatted products:", formattedProducts);
 
                                             // Importante: assicuriamoci che la tabella sia aggiornata dopo che il DOM è stato aggiornato da FacetedSearch
                                             setTimeout(() => {
@@ -154,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                                                 items_shown_from: json.pagination.items_shown_from || 1,
                                                                 items_shown_to: json.pagination.items_shown_to || formattedProducts.length,
                                                                 current_page: json.pagination.current_page || 1,
-                                                                pages_count: json.pagination.pages_count || 1
+                                                                pages_count: json.pagination.pages_count || 1,
                                                             };
 
                                                             self.renderPagination(paginationData);
@@ -166,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         }
                                     }
                                 } catch (error) {
-                                    console.error('Error parsing FacetedSearch response:', error);
+                                    console.error("Error parsing FacetedSearch response:", error);
                                     // Fallback: carica i prodotti normalmente
                                     self.loadProducts();
                                 }
@@ -175,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         originalXHROpen.apply(xmlHTTP, arguments);
                     };
 
-                    window.XMLHttpRequest.prototype.send = function() {
+                    window.XMLHttpRequest.prototype.send = function () {
                         originalXHRSend.apply(this, arguments);
                     };
 
@@ -185,17 +190,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.XMLHttpRequest.prototype.send = originalXHRSend;
 
                         // Se dopo 5 secondi siamo ancora in stato di caricamento, carica i prodotti normalmente
-                        if (self.tableBody.querySelector('.mp-grid-loading')) {
-                            console.log('Timeout reached, loading products normally');
+                        if (self.tableBody.querySelector(".mp-grid-loading")) {
+                            console.log("Timeout reached, loading products normally");
                             self.loadProducts();
                         }
                     }, 5000);
                 });
 
                 // Intercetta anche l'evento di errore del facetedsearch
-                prestashop.on('updateProductListError', (error) => {
+                prestashop.on("updateProductListError", (error) => {
                     console.clear();
-                    console.error('FacetedSearch error:', error);
+                    console.error("FacetedSearch error:", error);
                     // Mostra un messaggio di errore
                     this.tableBody.innerHTML = `
                         <tr>
@@ -211,56 +216,69 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
 
+        bindControls: () => {
+            console.log("BINDING...");
+            const cartQuantity = document.querySelectorAll(".cart-quantity");
+            cartQuantity.forEach((elem) => {
+                elem.addEventListener("input", (e) => {
+                    e.preventDefault;
+                    const addToCartBtn = e.target.closest("tr").querySelector(".mp-grid-add-to-cart");
+                    if (addToCartBtn) {
+                        addToCartBtn.dataset.quantity = e.target.value;
+                    }
+                });
+            });
+        },
+
         showProductInfo: async (id_product, tr) => {
             const self = this;
             const url = document.getElementById("mp-grid-fetch-product-info-url").value;
-            console.log('showProductInfo', id_product, "url", url);
+            console.log("showProductInfo", id_product, "url", url);
             const nextTr = tr.nextElementSibling;
-            if (nextTr && nextTr.classList.contains('mp-grid-product-info')) {
+            if (nextTr && nextTr.classList.contains("mp-grid-product-info")) {
                 nextTr.remove();
             } else {
-                const template = document.getElementById('mp-grid-product-info-template');
+                const template = document.getElementById("mp-grid-product-info-template");
                 const clone = document.importNode(template.content, true);
-                const newTr = clone.querySelector('.mp-grid-product-info');
+                const newTr = clone.querySelector(".mp-grid-product-info");
                 newTr.dataset.idProduct = id_product;
                 tr.parentNode.insertBefore(newTr, tr.nextSibling);
                 const td = newTr.querySelector("td");
                 const formData = new FormData();
-                formData.append('action', 'fetchProductInfo');
-                formData.append('id_product', id_product);
-                formData.append('ajax', 1);
+                formData.append("action", "fetchProductInfo");
+                formData.append("id_product", id_product);
+                formData.append("ajax", 1);
 
                 const response = await fetch(url, {
-                    method: 'POST',
-                    body: formData
+                    method: "POST",
+                    body: formData,
                 });
 
                 const data = await response.json();
                 console.log("Received:", data);
                 td.innerHTML = data.page;
-
             }
         },
 
         /**
          * Initialize event listeners
          */
-        initEventListeners: function() {
+        initEventListeners: function () {
             // Pagination click
-            this.pagination.addEventListener('click', (event) => {
+            this.pagination.addEventListener("click", (event) => {
                 event.preventDefault();
 
-                const target = event.target.closest('a');
+                const target = event.target.closest("a");
                 if (!target) return;
 
-                const li = target.closest('li');
-                if (li.classList.contains('disabled') || li.classList.contains('active')) {
+                const li = target.closest("li");
+                if (li.classList.contains("disabled") || li.classList.contains("active")) {
                     return;
                 }
 
-                if (li.classList.contains('mp-grid-prev')) {
+                if (li.classList.contains("mp-grid-prev")) {
                     this.currentPage--;
-                } else if (li.classList.contains('mp-grid-next')) {
+                } else if (li.classList.contains("mp-grid-next")) {
                     this.currentPage++;
                 } else {
                     this.currentPage = parseInt(target.textContent);
@@ -270,16 +288,16 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             // Items per page change
-            this.limitSelect.addEventListener('change', () => {
+            this.limitSelect.addEventListener("change", () => {
                 this.limit = parseInt(this.limitSelect.value);
                 this.currentPage = 1;
                 this.loadProducts();
             });
 
             // Add to cart button click
-            this.tableBody.addEventListener('click', async (event) => {
-                const addToCartBtn = event.target.closest('.mp-grid-add-to-cart');
-                
+            this.tableBody.addEventListener("click", async (event) => {
+                const addToCartBtn = event.target.closest(".mp-grid-add-to-cart");
+
                 if (addToCartBtn) {
                     event.preventDefault();
                     const url = addToCartBtn.dataset.url;
@@ -288,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const quantity = addToCartBtn.dataset.quantity;
 
                     // Add loading state
-                    addToCartBtn.classList.add('loading');
+                    addToCartBtn.classList.add("loading");
                     const originalText = addToCartBtn.innerHTML;
                     addToCartBtn.innerHTML = '<i class="material-icons">cached</i>';
 
@@ -305,10 +323,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     try {
                         const response = await fetch(url, {
-                                method: 'POST',
-                                body: formData
-                            });
-    
+                            method: "POST",
+                            body: formData,
+                        });
+
                         const resp = await response.json();
                         resp.id_product = id_product;
                         resp.id_product_attribute = id_product_attribute;
@@ -329,16 +347,16 @@ document.addEventListener('DOMContentLoaded', function() {
                                 idProduct: id_product,
                                 idProductAttribute: id_product_attribute,
                                 idCustomization: 0,
-                                linkAction: 'add-to-cart',
-                            }
+                                linkAction: "add-to-cart",
+                            },
                         });
 
                         addToCartBtn.innerHTML = originalText;
-                        addToCartBtn.classList.remove('loading');
+                        addToCartBtn.classList.remove("loading");
                     } catch (error) {
-                        console.error('Error adding product to cart:', error);
+                        console.error("Error adding product to cart:", error);
                         addToCartBtn.innerHTML = originalText;
-                        addToCartBtn.classList.remove('loading');
+                        addToCartBtn.classList.remove("loading");
                     }
                 }
             });
@@ -347,15 +365,15 @@ document.addEventListener('DOMContentLoaded', function() {
         /**
          * Load products via AJAX
          */
-        loadProducts: function() {
+        loadProducts: function () {
             // Variabile per tenere traccia delle richieste in corso
-            if (typeof this.pendingRequest === 'undefined') {
+            if (typeof this.pendingRequest === "undefined") {
                 this.pendingRequest = false;
             }
 
             // Se c'è già una richiesta in corso, non ne avviamo un'altra
             if (this.pendingRequest) {
-                console.log('Request already in progress, skipping...');
+                console.log("Request already in progress, skipping...");
                 return;
             }
 
@@ -375,38 +393,41 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Prepare request parameters
             const params = new URLSearchParams({
-                action: 'getProducts',
+                action: "getProducts",
                 page: this.currentPage,
                 limit: this.limit,
                 category_id: this.categoryId,
                 search_query: this.searchQuery,
                 order_by: this.orderBy,
                 order_way: this.orderWay,
-                ajax: 1
+                ajax: 1,
             });
 
             // Add filters from faceted search
             if (Object.keys(this.filters).length > 0) {
-                params.append('filters', JSON.stringify(this.filters));
+                params.append("filters", JSON.stringify(this.filters));
             }
 
             // Send AJAX request
             fetch(`${this.ajaxUrl}?${params.toString()}`)
-                .then(response => {
+                .then((response) => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     return response.json();
                 })
-                .then(data => {
+                .then((data) => {
                     this.renderProducts(data.products);
                     this.renderPagination(data.pagination);
+                    this.bindControls();
                     this.updatePaginationInfo(data.pagination);
                     // Richiesta completata
                     this.pendingRequest = false;
+                    //Sposto il focus a inizio pagina
+                    window.scrollTo({ top: 0, behavior: "smooth" });
                 })
-                .catch(error => {
-                    console.error('Error loading products:', error);
+                .catch((error) => {
+                    console.error("Error loading products:", error);
                     this.tableBody.innerHTML = `
                         <tr>
                             <td colspan="6" class="text-center">
@@ -423,9 +444,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         /**
          * Render products in the table
-         * @param {Array} products 
+         * @param {Array} products
          */
-        renderProducts: function(products) {
+        renderProducts: function (products) {
             const self = this;
             const table = document.querySelector(".mp-grid-table");
             if (table) {
@@ -451,16 +472,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Verifica se il template esiste
-            self.template = document.getElementById('mp-grid-product-template');
+            self.template = document.getElementById("mp-grid-product-template");
             console.log("template", self.template);
 
             if (!self.template) {
-                console.error('Template not found: mp-grid-product-template');
+                console.error("Template not found: mp-grid-product-template");
 
                 // Fallback: crea una riga di prodotto manualmente
-                products.forEach(product => {
-                    const row = document.createElement('tr');
-                    row.className = 'mp-grid-product';
+                products.forEach((product) => {
+                    const row = document.createElement("tr");
+                    row.className = "mp-grid-product";
                     row.innerHTML = `
                         <td class="mp-grid-col-image">
                             <a href="${product.url}" class="mp-grid-product-image">
@@ -501,23 +522,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Clone template and add products
             try {
-                products.forEach(product => {
+                products.forEach((product) => {
                     const template = this.template.content.cloneNode(true);
 
                     // Replace template variables with actual data
-                    const row = template.querySelector('tr');
+                    const row = template.querySelector("tr");
                     if (!row) {
-                        console.error('Row not found in template');
+                        console.error("Row not found in template");
                         return;
                     }
 
                     const html = row.outerHTML;
                     const productHtml = html.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-                        return product[key] || '';
+                        return product[key] || "";
                     });
 
                     // Add to table
-                    self.tableBody.insertAdjacentHTML('beforeend', productHtml);
+                    self.tableBody.insertAdjacentHTML("beforeend", productHtml);
                 });
                 const tBody = self.tableBody;
                 console.log("tBody", tBody);
@@ -527,14 +548,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const inputQuantity = document.querySelectorAll(".stock-input");
                 //Input quantity
-                inputQuantity.forEach((input) =>{
-                    input.addEventListener('focus', () => {
+                inputQuantity.forEach((input) => {
+                    input.addEventListener("focus", () => {
                         input.select();
                     });
                 });
                 inputQuantity.forEach((input) => {
-                    input.addEventListener('input', () => {
-                        const value = parseInt(input.value);       // Ora 'this' si riferisce all'elemento input
+                    input.addEventListener("input", () => {
+                        const value = parseInt(input.value); // Ora 'this' si riferisce all'elemento input
                         if (value < 1) {
                             input.value = 1;
                         }
@@ -546,7 +567,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         btnAddToCart.dataset.quantity = input.value;
                     });
                 });
-                
+
                 infoBtns.forEach((btn) => {
                     btn.addEventListener("click", (event) => {
                         event.preventDefault();
@@ -555,9 +576,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         self.showProductInfo(productId, row);
                     });
                 });
-
             } catch (error) {
-                console.error('Error rendering products:', error);
+                console.error("Error rendering products:", error);
 
                 // Fallback: mostra un messaggio di errore
                 self.tableBody.innerHTML = `
@@ -574,14 +594,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         /**
          * Render pagination
-         * @param {Object} pagination 
+         * @param {Object} pagination
          */
-        renderPagination: function(pagination) {
+        renderPagination: function (pagination) {
             this.totalItems = pagination.total_items;
             this.totalPages = pagination.pages_count;
 
             // Clear pagination
-            this.pagination.innerHTML = '';
+            this.pagination.innerHTML = "";
 
             // Se non ci sono pagine o solo una pagina, non mostrare la paginazione
             if (this.totalPages <= 1) {
@@ -590,8 +610,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // First page button
             if (this.totalPages > 3) {
-                const firstLi = document.createElement('li');
-                firstLi.className = `page-item mp-grid-page-first ${this.currentPage <= 1 ? 'disabled' : ''}`;
+                const firstLi = document.createElement("li");
+                firstLi.className = `page-item mp-grid-page-first ${this.currentPage <= 1 ? "disabled" : ""}`;
                 firstLi.innerHTML = `
                     <a class="page-link" href="#" aria-label="First">
                         <span aria-hidden="true">&laquo;&laquo;</span>
@@ -602,8 +622,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Previous button
-            const prevLi = document.createElement('li');
-            prevLi.className = `page-item mp-grid-prev ${this.currentPage <= 1 ? 'disabled' : ''}`;
+            const prevLi = document.createElement("li");
+            prevLi.className = `page-item mp-grid-prev ${this.currentPage <= 1 ? "disabled" : ""}`;
             prevLi.innerHTML = `
                 <a class="page-link" href="#" aria-label="Previous">
                     <span aria-hidden="true">&laquo;</span>
@@ -641,14 +661,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Aggiungi ellipsis all'inizio se necessario
             if (startPage > 1) {
-                const firstPageLi = document.createElement('li');
-                firstPageLi.className = 'page-item mp-grid-page-1';
+                const firstPageLi = document.createElement("li");
+                firstPageLi.className = "page-item mp-grid-page-1";
                 firstPageLi.innerHTML = `<a class="page-link" href="#">1</a>`;
                 this.pagination.appendChild(firstPageLi);
 
                 if (startPage > 2) {
-                    const ellipsisLi = document.createElement('li');
-                    ellipsisLi.className = 'page-item disabled';
+                    const ellipsisLi = document.createElement("li");
+                    ellipsisLi.className = "page-item disabled";
                     ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
                     this.pagination.appendChild(ellipsisLi);
                 }
@@ -656,8 +676,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Aggiungi le pagine numerate
             for (let i = startPage; i <= endPage; i++) {
-                const pageLi = document.createElement('li');
-                pageLi.className = `page-item mp-grid-page-${i} ${i === this.currentPage ? 'active' : ''}`;
+                const pageLi = document.createElement("li");
+                pageLi.className = `page-item mp-grid-page-${i} ${i === this.currentPage ? "active" : ""}`;
                 pageLi.innerHTML = `<a class="page-link" href="#">${i}</a>`;
                 this.pagination.appendChild(pageLi);
             }
@@ -665,21 +685,21 @@ document.addEventListener('DOMContentLoaded', function() {
             // Aggiungi ellipsis alla fine se necessario
             if (endPage < this.totalPages) {
                 if (endPage < this.totalPages - 1) {
-                    const ellipsisLi = document.createElement('li');
-                    ellipsisLi.className = 'page-item disabled';
+                    const ellipsisLi = document.createElement("li");
+                    ellipsisLi.className = "page-item disabled";
                     ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
                     this.pagination.appendChild(ellipsisLi);
                 }
 
-                const lastPageLi = document.createElement('li');
+                const lastPageLi = document.createElement("li");
                 lastPageLi.className = `page-item mp-grid-page-${this.totalPages}`;
                 lastPageLi.innerHTML = `<a class="page-link" href="#">${this.totalPages}</a>`;
                 this.pagination.appendChild(lastPageLi);
             }
 
             // Next button
-            const nextLi = document.createElement('li');
-            nextLi.className = `page-item mp-grid-next ${this.currentPage >= this.totalPages ? 'disabled' : ''}`;
+            const nextLi = document.createElement("li");
+            nextLi.className = `page-item mp-grid-next ${this.currentPage >= this.totalPages ? "disabled" : ""}`;
             nextLi.innerHTML = `
                 <a class="page-link" href="#" aria-label="Next">
                     <span aria-hidden="true">&raquo;</span>
@@ -690,8 +710,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Last page button
             if (this.totalPages > 3) {
-                const lastLi = document.createElement('li');
-                lastLi.className = `page-item mp-grid-page-last ${this.currentPage >= this.totalPages ? 'disabled' : ''}`;
+                const lastLi = document.createElement("li");
+                lastLi.className = `page-item mp-grid-page-last ${this.currentPage >= this.totalPages ? "disabled" : ""}`;
                 lastLi.innerHTML = `
                     <a class="page-link" href="#" aria-label="Last">
                         <span aria-hidden="true">&raquo;&raquo;</span>
@@ -704,17 +724,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         /**
          * Update pagination info text
-         * @param {Object} pagination 
+         * @param {Object} pagination
          */
-        updatePaginationInfo: function(pagination) {
-            const fromEl = this.grid.querySelector('.mp-grid-from');
-            const toEl = this.grid.querySelector('.mp-grid-to');
-            const totalEl = this.grid.querySelector('.mp-grid-total');
+        updatePaginationInfo: function (pagination) {
+            const fromEl = this.grid.querySelector(".mp-grid-from");
+            const toEl = this.grid.querySelector(".mp-grid-to");
+            const totalEl = this.grid.querySelector(".mp-grid-total");
 
             if (fromEl) fromEl.textContent = pagination.items_shown_from;
             if (toEl) toEl.textContent = pagination.items_shown_to;
             if (totalEl) totalEl.textContent = pagination.total_items;
-        }
+        },
     };
 
     // Initialize the grid

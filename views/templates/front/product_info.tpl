@@ -46,7 +46,7 @@
                                         {foreach from=$features item=feature}
                                             <tr>
                                                 <td class="feature-name">{$feature.name}</td>
-                                                <td class="feature-value">{$feature.value}</td>
+                                                <td class="feature-value">{$feature.value nofilter}</td>
                                             </tr>
                                         {/foreach}
                                     </tbody>

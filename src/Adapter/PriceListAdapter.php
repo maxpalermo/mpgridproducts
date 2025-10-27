@@ -423,6 +423,9 @@ class PriceListAdapter
      */
     private function executeCurlRequest($url, $params = [], $token = null)
     {
+
+        return '';
+
         // Inizializza la sessione curl
         $ch = curl_init();
 
@@ -527,6 +530,7 @@ class PriceListAdapter
      */
     private function parseResponse($response)
     {
+        return [];
         // Decodifica la risposta JSON
         $data = json_decode($response, true);
 

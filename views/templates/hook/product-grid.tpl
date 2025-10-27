@@ -1,17 +1,60 @@
-{*
-* 2025 MP Soft
-*
-* NOTICE OF LICENSE
-*
-* This source file is subject to the Academic Free License (AFL 3.0)
-* that is bundled with this package in the file LICENSE.txt.
-* It is also available through the world-wide-web at this URL:
-* http://opensource.org/licenses/afl-3.0.php
-*
-* @author    MP Soft
-* @copyright 2025 MP Soft
-* @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-*}
+{**
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2016 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+ *}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+
+<style>
+    .calender-text-top {
+        color: #f5f5f5;
+    }
+
+    .calender-text-bottom {
+        color: #303030;
+    }
+
+    .gap-0 {
+        gap: 0;
+    }
+
+    .gap-2 {
+        gap: 1rem;
+    }
+
+    .gap-4px {
+        gap: 4px;
+    }
+
+    .icon-box {
+        display: inline-flex;
+        align-items: center;
+        justify-content: start;
+        border: 1px solid #d0d0d0;
+        border-radius: 3px;
+        padding: 4px;
+        background-color: #f5f5f5;
+        color: #303030;
+        font-size: 16px;
+        font-weight: 600;
+        margin-right: 8px;
+    }
+</style>
 
 <div id="mp-grid-products" class="mp-grid-products"
      data-ajax-url="{$ajax_url}"
@@ -48,11 +91,10 @@
         <table class="mp-grid-table table table-striped">
             <thead>
                 <tr>
-                    <th class="mp-grid-col-image">{l s='Tipo' d='Modules.Mpgridproducts.Shop'}</th>
                     <th class="mp-grid-col-name">{l s='Prodotto' d='Modules.Mpgridproducts.Shop'}</th>
                     <th class="mp-grid-col-reference">{l s='Riferimento' d='Modules.Mpgridproducts.Shop'}</th>
                     <th class="mp-grid-col-price">{l s='Prezzo' d='Modules.Mpgridproducts.Shop'}</th>
-                    <th class="mp-grid-col-stock">{l s='Magazzino' d='Modules.Mpgridproducts.Shop'}</th>
+                    <th class="mp-grid-col-stock">{l s='Quantità' d='Modules.Mpgridproducts.Shop'}</th>
                     <th class="mp-grid-col-date-shipping">{l s='Data consegna' d='Modules.Mpgridproducts.Shop'}</th>
                     <th class="mp-grid-col-actions">{l s='Azioni' d='Modules.Mpgridproducts.Shop'}</th>
                 </tr>
@@ -104,50 +146,59 @@
     <!-- Template for product row -->
     <template id="mp-grid-product-template">
         <tr class="mp-grid-product" data-id-product="{literal}{{id}}{/literal}">
-            <td class="mp-grid-col-type">
-                <span class="material-icons">
-                    {literal}{{icon_vehicle}}{/literal}
-                </span>
-            </td>
+            <!-- Name column -->
             <td class="mp-grid-col-name">
+                <div class="form-group">
+                    {literal}{{icon_toolbar}}{/literal}
+                </div>
                 <a href="{literal}{{url}}{/literal}" class="mp-grid-product-name">
                     {literal}{{name}}{/literal}
                 </a>
                 <div class="mp-grid-product-desc">
-                    {literal}{{description_short}}{/literal}
+                    {literal}{{pfu_name}} <strong>{{pfu_price}}</strong>{/literal}
                 </div>
             </td>
-            <td class="mp-grid-col-reference">
+            <!-- Reference column -->
+            <td class="mp-grid-col-reference" style="max-width: 320px;">
                 <div class="reference">{literal}{{reference}}{/literal}</div>
                 <div class="image">
                     <img src="{literal}{{brand_image}}{/literal}" alt="{literal}{{brand_name}}{/literal}" class="img-fluid" style="max-height: 48px; object-fit: fill;">
                 </div>
             </td>
-            <td class="mp-grid-col-price justify-content-end">
-                {literal}{{price_formatted}}{/literal}
+            <!-- Price column -->
+            <td class="mp-grid-col-price justify-content-end" style="width: 72px;">
+                {literal}{{price_tax_exc_formatted}}{/literal}
             </td>
-            <td class="mp-grid-col-stock justify-content-center">
+            <!-- Stock column -->
+            <td class="mp-grid-col-stock justify-content-center" style="width: 92px;">
                 <div class="form-group">
-                    <input type="number" class="form-control stock-input" value="1" min="1" max="{literal}{{stock}}{/literal}" name="mp-grid-stock-input[]">
+                    <input type="number" class="form-control cart-quantity" value="1" min="1" max="{literal}{{stock}}{/literal}" name="mp-grid-stock-input[]" style="background-color: #f5f5f5; color: 303030; border: 1px solid #808080; border-radius: 5px; text-align: right;">
                 </div>
                 <div class="stock-container">
-                    <span class="badge badge-success">
-                        {literal}{{stock}}{/literal}
+                    <span>Magazzino:</span>
+                    <span class="badge" style="background-color: #4cbb6c; color: #F5F5F5; border: 1px solid #dddddd;">
+                        <strong>{literal}{{stock}}{/literal}</strong>
                     </span>
                 </div>
             </td>
-            <td class="mp-grid-col-date-shipping justify-content-center">
-                {literal}{{date_shipping}}{/literal}
+            <!-- Date shipping column -->
+            <td class="mp-grid-col-date-shipping" style="text-align: center; width: 72px;">
+                <svg class="calender" xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 32 32">
+                    <path class="calender-icon" fill="#808080" fill-rule="nonzero" d="M23 4h2a3 3 0 0 1 3 3v18a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h2v1a2 2 0 1 0 4 0V4h6v1a2 2 0 1 0 4 0V4zM11 2a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0V3a1 1 0 0 1 1-1zm10 0a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0V3a1 1 0 0 1 1-1zM6 16v7.889c0 1.227.995 2.222 2.222 2.222h15.556A2.222 2.222 0 0 0 26 23.89V16H6z"></path>
+                    <text class="calender-text-top" x="9" y="14" font-size="9px" fill="white">{literal}{{month_delivery}}{/literal}</text>
+                    <text class="calender-text-bottom" x="9" y="25" fill="#808080" font-size="11px" font-weight="900">{literal}{{day_delivery}}{/literal}</text>
+                </svg>
             </td>
-            <td class="mp-grid-col-actions d-flex justify-content-end align-items-center">
-                <a href="{literal}{{url}}{/literal}" class="btn btn-info btn-sm-circle mp-grid-view" title="{l s='View' d='Modules.Mpgridproducts.Shop'}">
-                    <i class="material-icons">search</i>
-                </a>
-                <a href="javascript:void(0);" data-id_product="{literal}{{id}}{/literal}" data-id_product_attribute="0" data-quantity="1" data-url="{$frontControllerAddToCartUrl}" class="btn btn-success btn-sm-circle mp-grid-add-to-cart" title="{l s='Add' d='Modules.Mpgridproducts.Shop'}">
-                    <i class="material-icons">shopping_cart</i>
-                </a>
+            <!-- Actions column -->
+            <td class="mp-grid-col-actions d-flex justify-content-end align-items-center" style="max-width: 150px;">
                 <a href="javascript:void(0);" class="btn btn-warning btn-sm-circle mp-grid-info-row" title="{l s='Info' d='Modules.Mpgridproducts.Shop'}">
                     <i class="material-icons">info</i>
+                </a>
+                <a href="{literal}{{url}}{/literal}" class="btn btn-info btn-sm-circle mp-grid-view" title="{l s='Vedi' d='Modules.Mpgridproducts.Shop'}">
+                    <i class="material-icons">search</i>
+                </a>
+                <a href="javascript:void(0);" data-id_product="{literal}{{id}}{/literal}" data-id_product_attribute="0" data-quantity="1" data-url="{$frontControllerAddToCartUrl}" class="btn btn-success btn-sm-circle mp-grid-add-to-cart" title="{l s='Aggiungi al carrello' d='Modules.Mpgridproducts.Shop'}">
+                    <i class="material-icons">shopping_cart</i>
                 </a>
             </td>
         </tr>

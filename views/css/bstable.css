@@ -1,0 +1,396 @@
+/* Stile PrestaShop 8 */
+
+.table {
+    --bs-table-bg: #fff;
+    --bs-table-striped-bg: #f8f9fa;
+    --bs-table-hover-bg: #e9ecef;
+    --bs-border-color: #dee2e6;
+    --bs-primary: #0d6efd;
+    --bs-secondary: #6c757d;
+    --bs-success: #198754;
+    --bs-danger: #dc3545;
+    --bs-warning: #ffc107;
+    --bs-info: #0dcaf0;
+    --bs-light: #f8f9fa;
+    --bs-dark: #212529;
+
+}
+
+.btn-primary {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.btn-primary:hover {
+    background-color: var(--bs-primary-dark);
+    border-color: var(--bs-primary-dark);
+}
+
+.btn-secondary {
+    background-color: var(--bs-secondary);
+    border-color: var(--bs-secondary);
+}
+
+.btn-success {
+    background-color: var(--bs-success);
+    border-color: var(--bs-success);
+}
+
+.btn-danger {
+    background-color: var(--bs-danger);
+    border-color: var(--bs-danger);
+}
+
+.btn-warning {
+    background-color: var(--bs-warning);
+    border-color: var(--bs-warning);
+    color: #000;
+}
+
+.btn-info {
+    background-color: var(--bs-info);
+    border-color: var(--bs-info);
+    color: #000;
+}
+
+.text-primary {
+    color: var(--bs-primary) !important;
+}
+
+.text-secondary {
+    color: var(--bs-secondary) !important;
+}
+
+.text-success {
+    color: var(--bs-success) !important;
+}
+
+.text-danger {
+    color: var(--bs-danger) !important;
+}
+
+.bg-light {
+    background-color: var(--bs-light) !important;
+}
+
+.bg-dark {
+    background-color: var(--bs-dark) !important;
+}
+
+
+.card {
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e5e5e5;
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+    color: #363a41;
+}
+
+.card-header .material-icons {
+    vertical-align: middle;
+    margin-right: 8px;
+    font-size: 20px;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    color: #363a41;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+    padding: 12px;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.btn-group-sm {
+    white-space: nowrap !important;
+}
+
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+}
+
+.btn-group-sm .material-icons {
+    font-size: 16px;
+}
+
+.product-name strong {
+    color: #363a41;
+    font-size: 14px;
+}
+
+.img-thumbnail {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.badge {
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+}
+
+.form-label {
+    font-weight: 500;
+    color: #363a41;
+    margin-bottom: 0.5rem;
+}
+
+.btn-primary {
+    background-color: #25b9d7;
+    border-color: #25b9d7;
+}
+
+.btn-primary:hover {
+    background-color: #1da5be;
+    border-color: #1da5be;
+}
+
+.btn .material-icons {
+    vertical-align: middle;
+    margin-right: 4px;
+    font-size: 18px;
+}
+
+.page-item {}
+
+.page-link {
+    padding: 0 !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    width: auto !important;
+}
+
+.page-item.page-last-separator.disabled {
+    color: var(--bs-secondary) !important;
+}
+
+.gap-1 {
+    gap: 0.5rem;
+}
+
+.gap-2 {
+    gap: 1rem;
+}
+
+.gap-3 {
+    gap: 1.5rem;
+}
+
+.gap-4 {
+    gap: 2rem;
+}
+
+.calendar {
+    position: relative;
+    display: inline-block;
+}
+
+.calendar:after {
+    font-family: "FontAwesome";
+    font-size: 6rem;
+    content: "\f133";
+    color: var(--bs-primary);
+}
+
+.month-delivery {
+    position: absolute;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--bs-dark);
+    z-index: 1000;
+    text-transform: uppercase;
+}
+
+.day-delivery {
+    position: absolute;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--bs-dark);
+    z-index: 1000;
+}
+
+.icon-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: start;
+    border: 1px solid #d0d0d0;
+    border-radius: 3px;
+    padding: 4px;
+    background-color: #f5f5f5;
+    color: #303030;
+    font-size: 16px;
+    font-weight: 600;
+    margin-right: 8px;
+    margin-bottom: 12px;
+}
+
+.icon-tyre-sun {
+    background-image: url('./../img/tyre-sun.png');
+    background-size: cover;
+    background-position: center;
+    width: 20px;
+    height: 20px;
+}
+
+.icon-tyre-snow {
+    background-image: url('./../img/tyre-snow.png');
+    background-size: cover;
+    background-position: center;
+    width: 20px;
+    height: 20px;
+}
+
+.cart-quantity {
+    background-color: #f5f5f5;
+    color: 303030;
+    border: 1px solid #d0d0d0;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 1.3rem;
+    height: 40px;
+}
+
+.stock {
+    width: auto;
+    padding: 8px;
+    font-size: 1.3rem;
+    color: #fcfcfc;
+    background-color: #25b9d7;
+}
+
+.btn-no-border {
+    border: none;
+    background-color: transparent;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px;
+}
+
+.cart-quantity {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cart-quantity input {
+    font-size: 1.3rem;
+    text-align: center;
+}
+
+.cart-quantity button:hover {
+    background-color: #25b9d7;
+    color: #fff;
+}
+
+.fixed-width-sm {
+    width: 95px;
+}
+
+.fixed-width-md {
+    width: 150px;
+}
+
+.text-right {
+    text-align: right;
+}
+
+/* Stile Chosen per adattarlo a Bootstrap/PrestaShop */
+.chzn-container-single .chzn-single {
+    background: #fff !important;
+    background-image: none !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 0.25rem !important;
+    box-shadow: none !important;
+    height: 38px !important;
+    line-height: 36px !important;
+    padding: 0 30px 0 12px !important;
+    font-size: 1rem !important;
+    color: #495057 !important;
+    min-width: 200px !important;
+}
+
+.chzn-container-single .chzn-single div {
+    top: 0 !important;
+    right: 0 !important;
+    width: 30px !important;
+    height: 38px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.chzn-container-single .chzn-single div b {
+    background: none !important;
+    border: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-left: 5px solid transparent !important;
+    border-right: 5px solid transparent !important;
+    border-top: 5px solid #495057 !important;
+    margin: 0 !important;
+}
+
+.chzn-container-active.chzn-with-drop .chzn-single {
+    border-color: #80bdff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
+
+.chzn-container .chzn-drop {
+    border: 1px solid #ced4da !important;
+    border-radius: 0.25rem !important;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    margin-top: 2px !important;
+}
+
+.chzn-container .chzn-results li.highlighted {
+    background-color: #25b9d7 !important;
+    background-image: none !important;
+    color: #fff !important;
+}
+
+.chzn-container-single .chzn-search input[type="text"] {
+    border: 1px solid #ced4da !important;
+    border-radius: 0.25rem !important;
+    padding: 6px 12px !important;
+    font-size: 1rem !important;
+}
+
+.chzn-container-single .chzn-single:focus,
+.chzn-container-active .chzn-single {
+    outline: none !important;
+}
+
+.chzn-container {
+    width: 100% !important;
+}
+
+.total-products {
+    display: block;
+    float: right;
+    margin-right: 1rem;
+}
+
+.total-products span {
+    padding: 12px;
+    font-size: 1.2rem;
+    border: 1px solid #dcdcdc;
+    border-radius: 5px;
+    text-align: center;
+}

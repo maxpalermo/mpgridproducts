@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 2025 MP Soft
  *
@@ -13,7 +14,6 @@
  * @copyright 2025 MP Soft
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
-
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -22,6 +22,7 @@ if (!defined('_PS_VERSION_')) {
 require_once __DIR__ . '/vendor/autoload.php';
 
 use MpSoft\MpGridProducts\Controllers\Front\ProductListingWrapperController;
+use MpSoft\MpGridProducts\Traits\getTwigEnvironment;
 use PrestaShop\PrestaShop\Adapter\SymfonyContainer;
 use PrestaShop\PrestaShop\Core\Module\WidgetInterface;
 use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
@@ -78,8 +79,8 @@ class MpGridProducts extends Module implements WidgetInterface
         Configuration::updateValue('MPGRIDPRODUCTS_TYRES24_API_URL', 'https://api.tyres24.com/v1');
         Configuration::updateValue('MPGRIDPRODUCTS_TYRES24_API_KEY', '');
         Configuration::updateValue('MPGRIDPRODUCTS_TYRES24_API_TIMEOUT', 30);
-        Configuration::updateValue('MPGRIDPRODUCTS_TYRES24_CACHE_TIME', 60); // 60 minuti di default
-        Configuration::updateValue('MPGRIDPRODUCTS_TYRES24_PRICE_LOAD', 1.15); // 15% di ricarica di default
+        Configuration::updateValue('MPGRIDPRODUCTS_TYRES24_CACHE_TIME', 60);  // 60 minuti di default
+        Configuration::updateValue('MPGRIDPRODUCTS_TYRES24_PRICE_LOAD', 1.15);  // 15% di ricarica di default
 
         return parent::install() &&
             $this->registerHook('displayProductListingWrapper') &&
@@ -136,7 +137,6 @@ class MpGridProducts extends Module implements WidgetInterface
             $this->context->controller->php_self == 'manufacturer' ||
             $this->context->controller->php_self == 'supplier'
         ) {
-
             $this->context->controller->registerStylesheet(
                 'mpgridproducts-style',
                 'modules/' . $this->name . '/views/css/mpgridproducts.css',
@@ -155,14 +155,36 @@ class MpGridProducts extends Module implements WidgetInterface
                 ]
             );
 
-            $this->context->controller->registerJavascript(
-                'mpgridproducts-script',
-                'modules/' . $this->name . '/views/js/mpgridproducts.js',
+            // Registra Chosen CSS
+            $this->context->controller->registerStylesheet(
+                'chosen-css',
+                'js/jquery/plugins/chosen/jquery.chosen.css',
                 [
-                    'position' => 'bottom',
-                    'priority' => 200,
+                    'media' => 'all',
+                    'priority' => 150,
                 ]
             );
+
+            // Registra Chosen JS
+            $this->context->controller->registerJavascript(
+                'chosen-js',
+                'js/jquery/plugins/chosen/jquery.chosen.js',
+                [
+                    'position' => 'bottom',
+                    'priority' => 150,
+                ]
+            );
+
+            /*
+             * $this->context->controller->registerJavascript(
+             *     'mpgridproducts-script',
+             *     'modules/' . $this->name . '/views/js/mpgridproducts.js',
+             *     [
+             *         'position' => 'bottom',
+             *         'priority' => 200,
+             *     ]
+             * );
+             */
         }
     }
 
@@ -181,100 +203,6 @@ class MpGridProducts extends Module implements WidgetInterface
 
         $controller = new ProductListingWrapperController();
         return $controller->renderProductList($params);
-    }
-
-    /**
-     * Renderizza la lista dei prodotti utilizzando il servizio ProductListingService
-     * 
-     * @param array $params Parametri dell'hook
-     * @param \MpSoft\MpGridProducts\Services\ProductListingService $productListingService Servizio per la gestione dei prodotti
-     * @return string HTML renderizzato
-     */
-    private function renderProductList($params, $productListingService)
-    {
-        // Get the current controller
-        $controller = $this->context->controller;
-
-        // Only apply on category, search, manufacturer and supplier pages
-        if (
-            !($controller->php_self == 'category' ||
-                $controller->php_self == 'search' ||
-                $controller->php_self == 'manufacturer' ||
-                $controller->php_self == 'supplier')
-        ) {
-            return '';
-        }
-
-        // Initialize listing array
-        $listing = [
-            'products' => [],
-            'pagination' => [
-                'total_items' => 0,
-                'items_shown_from' => 1,
-                'items_shown_to' => 0,
-                'pages_count' => 1,
-                'current_page' => 1
-            ]
-        ];
-
-        // Get products from hook parameters if available
-        if (isset($params['products']) && is_array($params['products'])) {
-            $listing['products'] = $params['products'];
-        } elseif (method_exists($controller, 'getTemplateVarListing')) {
-            // Fallback to controller method
-            $controllerListing = $controller->getTemplateVarListing();
-            if (isset($controllerListing['products'])) {
-                $listing['products'] = $controllerListing['products'];
-            }
-        }
-
-        // Get pagination from hook parameters if available
-        if (isset($params['pagination']) && is_array($params['pagination'])) {
-            $listing['pagination'] = $params['pagination'];
-        } elseif (method_exists($controller, 'getTemplateVarListing')) {
-            // Fallback to controller method
-            $controllerListing = $controller->getTemplateVarListing();
-            if (isset($controllerListing['pagination'])) {
-                $listing['pagination'] = $controllerListing['pagination'];
-            }
-        }
-
-        // Update pagination values
-        if (!empty($listing['products'])) {
-            $count = count($listing['products']);
-            $listing['pagination']['items_shown_to'] = $listing['pagination']['items_shown_from'] + $count - 1;
-            $listing['pagination']['total_items'] = max($listing['pagination']['total_items'], $count);
-        }
-
-        // Get configuration values
-        $columns = [
-            'image' => (bool) Configuration::get('MPGRIDPRODUCTS_COL_IMAGE'),
-            'brand' => (bool) Configuration::get('MPGRIDPRODUCTS_COL_BRAND'),
-            'name' => (bool) Configuration::get('MPGRIDPRODUCTS_COL_NAME'),
-            'reference' => (bool) Configuration::get('MPGRIDPRODUCTS_COL_REFERENCE'),
-            'manufacturer' => (bool) Configuration::get('MPGRIDPRODUCTS_COL_MANUFACTURER'),
-            'price' => (bool) Configuration::get('MPGRIDPRODUCTS_COL_PRICE'),
-            'actions' => (bool) Configuration::get('MPGRIDPRODUCTS_COL_ACTIONS'),
-        ];
-
-        // Utilizzo del servizio per elaborare i prodotti
-        $listing['products'] = $productListingService->processProductsForGrid($listing['products']);
-
-        // Assign template variables
-        $this->context->smarty->assign([
-            'listing' => $listing,
-            'ajax_url' => $this->context->link->getModuleLink($this->name, 'Cron'),
-            'mpgridproducts_columns' => $columns,
-            'mpgridproducts_items_per_page' => (int) Configuration::get('MPGRIDPRODUCTS_ITEMS_PER_PAGE'),
-            'mpgridproducts_order_by' => Configuration::get('MPGRIDPRODUCTS_DEFAULT_ORDER_BY'),
-            'mpgridproducts_order_way' => Configuration::get('MPGRIDPRODUCTS_DEFAULT_ORDER_WAY'),
-            'fetchProductInfoURL' => $this->getFrontLink(),
-            'frontControllerAddToCartUrl' => $this->context->link->getPageLink('cart'),
-            'frontControllerAddToCartUrl2' => $this->context->link->getModuleLink($this->name, 'Cron'),
-        ]);
-
-        // Return our template
-        return $this->fetch('module:' . $this->name . '/views/templates/hook/product-grid.tpl');
     }
 
     /**
