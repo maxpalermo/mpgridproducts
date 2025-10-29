@@ -14,6 +14,10 @@
             </div>
             <form id="product-search-form">
                 <div class="d-flex justify-content-center align-items-center gap-2">
+                    <div class="form-group fixed-width-md">
+                        <label for="search-reference" class="form-label">Misura</label>
+                        <input type="text" class="form-control" id="search-measure" placeholder="ES: 2253510" value="{{ measure}}"/>
+                    </div>
                     <div class="form-group">
                         <label for="search-product" class="form-label">Marca</label>
                         <select class="form-control chosen" id="search-brand" placeholder="Marca" />
@@ -32,10 +36,6 @@
                         <input type="text" class="form-control" id="search-ean13" placeholder="Ean13" />
                     </div>
                     <div class="form-group fixed-width-sm">
-                        <label for="search-reference" class="form-label">Misura</label>
-                        <input type="text" class="form-control" id="search-measure" placeholder="ES: 2253510" />
-                    </div>
-                    <div class="form-group fixed-width-sm">
                         <label for="search-price-min" class="form-label">Prezzo Min</label>
                         <input type="number" class="form-control text-right" id="search-price-min" placeholder="0.00" step="0.01" />
                     </div>
@@ -43,7 +43,7 @@
                         <label for="search-price-max" class="form-label">Prezzo Max</label>
                         <input type="number" class="form-control text-right" id="search-price-max" placeholder="0.00" step="0.01" />
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" style="display: none;">
                         <label for="search-delivery" class="form-label">Data Consegna</label>
                         <input type="date" class="form-control" id="search-delivery" />
                     </div>
@@ -210,6 +210,9 @@
         return `
             <div class="d-flex justify-start align-items-center">
                 <img class="img-thumbnail" src="${row.brand_image}" alt="${row.brand}" />
+            </div>
+            <div class="category-name">
+                <span>${row.category_name}</span>
             </div>
         `;
     }
@@ -648,6 +651,10 @@
                     fetchProductsList(params.data)
                         .then(function(data) {
                             console.log("Data prima di success:", data);
+                            const measureParam = data.measure || '';
+                            if (measureParam) {
+                                $("#search-measure").val(measureParam);
+                            }
                             params.success(data);
                         })
                         .catch(function(error) {

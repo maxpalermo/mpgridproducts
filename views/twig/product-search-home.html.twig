@@ -1,0 +1,131 @@
+<form id="tire-search-form" class="needs-validation" novalidate>
+    <div class="d-flex justify-content-center align-items-center mt-2 mb-2" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
+            <div class="search-bar-dark d-flex" style="width: 60%;">
+                <input 
+                    type="text" 
+                    class="search-input-dark" 
+                    id="tire-measure" 
+                    placeholder="Inserisci la misura del pneumatico (es: 225/45R17, 195/65R15, 2055516)" 
+                    required
+                />
+                <button type="submit" class="search-button-dark">
+                    <i class="material-icons">search</i>
+                    <span class="ms-2">Cerca</span>
+                </button>
+            </div>
+    </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('tire-search-form');
+    const measureInput = document.getElementById('tire-measure');
+    
+    // Gestione submit form
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const measure = measureInput.value.trim();
+        
+        if (measure) {
+            // Reindirizza alla pagina di ricerca con il parametro misura
+            window.location.href = '{{ frontControllerUrl }}?ajax=1&action=searchProducts&measure=' + encodeURIComponent(measure);
+        }
+    });
+});
+</script>
+
+<style>
+.d-flex {
+    display: flex;
+}
+
+.grow-1 {
+    grow: 1;
+}
+
+.justify-content-center {
+    justify-content: center;
+}
+
+.align-items-center {
+    align-items: center;
+}
+
+.search-bar-dark {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px;
+    border-radius: 50px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.search-bar-dark:hover {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.search-input-dark {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #ffffff;
+    font-size: 1.1rem;
+    padding: 12px 20px;
+}
+
+.search-input-dark::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.search-button-dark {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.search-button-dark:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.search-button-dark:active {
+    transform: translateY(0);
+}
+
+.search-button-dark .material-icons {
+    font-size: 20px;
+}
+
+@media (max-width: 768px) {
+    .search-bar-dark {
+        flex-direction: column;
+        border-radius: 20px;
+        padding: 12px;
+    }
+    
+    .search-input-dark {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .search-button-dark {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>

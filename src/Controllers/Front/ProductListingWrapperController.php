@@ -42,6 +42,14 @@ class ProductListingWrapperController
         $this->twig = new getTwigEnvironment($this->module->name);
     }
 
+    public function renderSearchHome($params)
+    {
+        $template = $this->twig->renderTemplate('@ModuleTwig/product-search-home.html.twig', $params);
+
+        // Return our template instead of the default one
+        return $template;
+    }
+
     /**
      * @param array $params
      * @return string
@@ -109,6 +117,15 @@ class ProductListingWrapperController
             $listing['products'][$key]->appendArray([
                 'icon_toolbar' => $toolbar,
             ]);
+
+            $price = \Product::getPriceStatic(
+                $product['id_product'],
+                false,
+            );
+
+            $listing['products'][$key]->appendArray([
+                'price' => $this->context->getCurrentLocale()->formatPrice($price, $this->context->currency->iso_code)
+            ]);
         }
 
         // Assign template variables
@@ -125,6 +142,7 @@ class ProductListingWrapperController
             'frontControllerAddToCartUrl2' => $this->context->link->getModuleLink($this->module->name, 'Cron'),
             'tokenString' => \Tools::getToken(false),
             'brands' => \Manufacturer::getManufacturers(false, $this->id_lang),
+            'measure' => \Tools::getValue('measure'),
         ];
 
         $template = $this->twig->renderTemplate('@ModuleTwig/product-grid.html.twig', $params);

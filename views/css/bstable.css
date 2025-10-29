@@ -394,3 +394,14 @@
     border-radius: 5px;
     text-align: center;
 }
+
+.category-name {
+    padding: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.3rem;
+    border: 1px solid #dcdcdc;
+    border-radius: 10px;
+    margin-top: 8px;
+}

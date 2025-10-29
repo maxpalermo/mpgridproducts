@@ -85,6 +85,9 @@ class MpGridProducts extends Module implements WidgetInterface
         return parent::install() &&
             $this->registerHook('displayProductListingWrapper') &&
             $this->registerHook('displayHeader') &&
+            $this->registerHook('displayHome') &&
+            $this->registerHook('displayTop') &&
+            $this->registerHook('displaySearch') &&
             $this->registerHook('actionFrontControllerSetMedia');
     }
 
@@ -188,6 +191,19 @@ class MpGridProducts extends Module implements WidgetInterface
         }
     }
 
+    public function hookDisplayHome($params)
+    {
+        // Check if the module is enabled
+        if (!Configuration::get('MPGRIDPRODUCTS_ENABLE')) {
+            return '';
+        }
+
+        $params['frontControllerUrl'] = $this->context->link->getModuleLink($this->name, 'Cron');
+
+        $controller = new ProductListingWrapperController();
+        return $controller->renderSearchHome($params);
+    }
+
     /**
      * Hook to replace the product list with our grid
      *
@@ -215,7 +231,19 @@ class MpGridProducts extends Module implements WidgetInterface
     public function renderWidget($hookName, array $configuration)
     {
         if ($hookName == 'displayProductListingWrapper') {
-            return $this->hookDisplayProductListingWrapper($configuration);
+            // return $this->hookDisplayProductListingWrapper($configuration);
+        }
+        if ($hookName == 'displayHome') {
+            // return $this->hookDisplayHome($configuration);
+        }
+        if ($hookName == 'displayHomeTop1') {
+            return $this->hookDisplayHome($configuration);
+        }
+        if ($hookName == 'displayTop') {
+            // return $this->hookDisplayHome($configuration);
+        }
+        if ($hookName == 'displaySearch') {
+            // return $this->hookDisplayHome($configuration);
         }
 
         return '';

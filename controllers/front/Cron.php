@@ -102,19 +102,34 @@ class MpGridProductsCronModuleFrontController extends ModuleFrontController
         ];
     }
 
-    protected function getProductsListAction()
+    protected function searchProductsAction()
     {
-        // Get pagination parameters from bootstrap-table
-        return $this->getProductsAction(null);
+        $measure = \Tools::getValue('measure');
+        $tyreCategories = explode(',', \Configuration::get('MPORDERTYRE_CATEGORIES'));
+        $homeCategoryId = $tyreCategories[0];
+
+        $categoryUrl = $this->context->link->getCategoryLink($homeCategoryId, null, $this->id_lang);
+
+        $cookie = $this->context->cookie;
+        $cookie->__set('MPGRIDPRODUCT_MEASURE_SEARCH_PARAM', $measure);
+        $cookie->write();
+
+        Tools::redirect($categoryUrl);
     }
 
-    protected function getProductsAction($params)
+    protected function getProductsListAction()
     {
-        $params = null;
+        // Get pagination parameters from bootstrap-tabl
+        return $this->getProductsAction();
+    }
+
+    protected function getProductsAction()
+    {
         // Get pagination parameters from bootstrap-table
         $offset = (int) Tools::getValue('offset', 0);
         $limit = (int) Tools::getValue('limit', 25);
-        $search = json_decode(Tools::getValue('search', []), true);
+
+        $search = json_decode(Tools::getValue('search', ''), true);
 
         $page = floor($offset / $limit) + 1;
 
@@ -146,25 +161,38 @@ class MpGridProductsCronModuleFrontController extends ModuleFrontController
         $priceMaxFilter = $search['price_max'] ?? '';
         $deliveryDateFilter = $search['delivery'] ?? '';
 
+        if (!$measureFilter) {
+            $cookie = $this->context->cookie;
+            $measure = $cookie->__get('MPGRIDPRODUCT_MEASURE_SEARCH_PARAM');
+            if ($measure) {
+                $measureFilter = $measure;
+            }
+            $cookie->__unset('MPGRIDPRODUCT_MEASURE_SEARCH_PARAM');
+            $cookie->write();
+        }
+
         try {
             // Costruisci la query SQL diretta
             $sql = new \DbQuery();
-            $sql->select('p.id_product, pl.name, pl.description_short, pl.link_rewrite');
-            $sql->select('p.reference, p.ean13, p.price, p.id_manufacturer, pl.delivery_in_stock');
-            $sql->select('m.name as manufacturer_name');
-            $sql->select('image_shop.id_image');
-            $sql->select('product_shop.active, product_shop.price as price_tax_exc');
 
             $sql->from('product', 'p');
             $sql->innerJoin('product_shop', 'product_shop', 'product_shop.id_product = p.id_product AND product_shop.id_shop = ' . (int) $this->context->shop->id);
             $sql->leftJoin('product_lang', 'pl', 'p.id_product = pl.id_product AND pl.id_lang = ' . (int) $this->id_lang . ' AND pl.id_shop = ' . (int) $this->context->shop->id);
             $sql->leftJoin('manufacturer', 'm', 'p.id_manufacturer = m.id_manufacturer');
-            $sql->leftJoin('image_shop', 'image_shop', 'image_shop.id_product = p.id_product AND image_shop.cover = 1 AND image_shop.id_shop = ' . (int) $this->context->shop->id);
 
             // Filtro per categoria
-            if ($categoryId > 0) {
-                // $sql->innerJoin('category_product', 'cp', 'p.id_product = cp.id_product AND cp.id_category = ' . (int) $categoryId);
+            if ($categoryId > 0 && (
+                empty($brandFilter) &&
+                empty($referenceFilter) &&
+                empty($ean13Filter) &&
+                empty($measureFilter) &&
+                empty($priceMinFilter) &&
+                empty($priceMaxFilter) &&
+                empty($deliveryDateFilter)
+            )) {
+                $sql->innerJoin('category_product', 'cp', 'p.id_product = cp.id_product AND cp.id_category = ' . (int) $categoryId);
                 $sql->where('p.id_category_default = ' . (int) $categoryId);
+                $sql->where('cp.id_category = ' . (int) $categoryId);
             }
 
             // Filtri dalla toolbar
@@ -197,57 +225,37 @@ class MpGridProductsCronModuleFrontController extends ModuleFrontController
 
             // Filtro per misura (feature)
             if (!empty($measureFilter)) {
-                $sql->innerJoin('feature_product', 'fp', 'p.id_product = fp.id_product');
-                $sql->innerJoin('feature_value_lang', 'fvl', 'fp.id_feature_value = fvl.id_feature_value AND fvl.id_lang = ' . (int) $this->id_lang);
-                $sql->innerJoin('feature_lang', 'fl', 'fp.id_feature = fl.id_feature AND fl.id_lang = ' . (int) $this->id_lang);
-                $sql->where('LOWER(fl.name) = "grandezza" AND fvl.value LIKE "%' . pSQL($measureFilter) . '%"');
+                $sql->where('
+                    LOWER(pl.name) LIKE "%' . pSQL($measureFilter) . '%" '
+                    . 'OR LOWER(p.reference) LIKE "%' . pSQL($measureFilter) . '%"');
             }
 
-            // Conta totale prima della paginazione (costruisci una query separata per il count)
-            $sqlCountStr = 'SELECT COUNT(DISTINCT p.id_product) as total '
-                . 'FROM ' . _DB_PREFIX_ . 'product p '
-                . 'INNER JOIN ' . _DB_PREFIX_ . 'product_shop product_shop ON (product_shop.id_product = p.id_product AND product_shop.id_shop = ' . (int) $this->context->shop->id . ') '
-                . 'WHERE product_shop.active = 1';
-
-            // Aggiungi le stesse condizioni WHERE della query principale
-            if ($categoryId > 0) {
-                $sqlCountStr .= ' AND EXISTS (SELECT 1 FROM ' . _DB_PREFIX_ . 'category_product cp WHERE cp.id_product = p.id_product AND cp.id_category = ' . (int) $categoryId . ')';
-            }
-            if (!empty($brandFilter)) {
-                $sqlCountStr .= ' AND p.id_manufacturer = ' . (int) $brandFilter;
-            }
-            if (!empty($referenceFilter)) {
-                $sqlCountStr .= ' AND p.reference LIKE "%' . pSQL($referenceFilter) . '%"';
-            }
-            if (!empty($ean13Filter)) {
-                $sqlCountStr .= ' AND p.ean13 LIKE "%' . pSQL($ean13Filter) . '%"';
-            }
-            if (!empty($priceMinFilter)) {
-                $sqlCountStr .= ' AND product_shop.price >= ' . (float) $priceMinFilter;
-            }
-            if (!empty($priceMaxFilter)) {
-                $sqlCountStr .= ' AND product_shop.price <= ' . (float) $priceMaxFilter;
-            }
-            if (!empty($deliveryDateFilter)) {
-                $sqlCountStr .= ' AND pl.delivery_in_stock <= "' . pSQL($deliveryDateFilter) . '"';
-            }
-            if (!empty($measureFilter)) {
-                $sqlCountStr .= ' AND EXISTS (SELECT 1 FROM ' . _DB_PREFIX_ . 'feature_product fp '
-                    . 'INNER JOIN ' . _DB_PREFIX_ . 'feature_value_lang fvl ON fp.id_feature_value = fvl.id_feature_value AND fvl.id_lang = ' . (int) $this->id_lang . ' '
-                    . 'INNER JOIN ' . _DB_PREFIX_ . 'feature_lang fl ON fp.id_feature = fl.id_feature AND fl.id_lang = ' . (int) $this->id_lang . ' '
-                    . 'WHERE fp.id_product = p.id_product AND LOWER(fl.name) = "grandezza" AND fvl.value LIKE "%' . pSQL($measureFilter) . '%")';
-            }
-
+            // Copio la DbQuery in una nuova Variabile
+            $sqlCount = clone $sql;
+            $sqlCount->select('COUNT(DISTINCT p.id_product) as total');
+            $sqlCountStr = $sqlCount->build();
             $totalProducts = (int) \Db::getInstance()->getValue($sqlCountStr);
 
+            // Inserisco i campi da selezionare alla query principale
+            $sql->select('p.id_product, pl.name, pl.description_short, pl.link_rewrite');
+            $sql->select('cl.name as category_name');
+            $sql->select('p.reference, p.ean13, p.price, p.id_manufacturer, pl.delivery_in_stock');
+            $sql->select('m.name as manufacturer_name');
+            $sql->select('image_shop.id_image');
+            $sql->select('product_shop.active, product_shop.price as price_tax_exc');
+            $sql->leftJoin('image_shop', 'image_shop', 'image_shop.id_product = p.id_product AND image_shop.cover = 1 AND image_shop.id_shop = ' . (int) $this->context->shop->id);
+            $sql->leftJoin('category_lang', 'cl', 'cl.id_category=p.id_category_default AND cl.id_lang=' . (int) $this->id_lang . ' AND cl.id_shop=' . (int) $this->context->shop->id);
+
             // Ordinamento
+            $sql->orderBy('p.id_category_default DESC');
             $sql->orderBy('p.' . pSQL($orderBy) . ' ' . pSQL($orderWay));
 
             // Paginazione
             $sql->limit($limit, $offset);
 
             // Esegui la query
-            $rawProducts = \Db::getInstance()->executeS($sql);
+            $sqlString = $sql->build();
+            $rawProducts = \Db::getInstance()->executeS($sqlString);
 
             if (!$rawProducts) {
                 $rawProducts = [];
@@ -345,6 +353,7 @@ class MpGridProductsCronModuleFrontController extends ModuleFrontController
                     'pfu_price' => $pfuPrice,
                     'icon_toolbar' => $iconToolbar,
                     'ean13' => $product->ean13,
+                    'category_name' => $rawProduct['category_name'],
                 ];
 
                 // Aggiungi l'immagine se disponibile
@@ -366,6 +375,7 @@ class MpGridProductsCronModuleFrontController extends ModuleFrontController
                 'success' => true,
                 'total' => $totalProducts,
                 'rows' => $formattedProducts,
+                'measure' => $measureFilter,
             ];
 
             // Restituisci la risposta come JSON
